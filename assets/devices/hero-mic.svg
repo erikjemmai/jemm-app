@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <defs>
+    <filter id="mic-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feColorMatrix in="b" type="matrix" values="0 0 0 0 0  0 0 0 0 0.835  0 0 0 0 0.549  0 0 0 0.28 0"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#mic-glow)">
+    <circle cx="48" cy="48" r="36" fill="#202020" stroke="#3a3a3a"/>
+    <circle cx="48" cy="48" r="28" fill="#151515"/>
+    <circle cx="48" cy="48" r="22" fill="none" stroke="#00D58C" stroke-opacity="0.22"/>
+    <circle cx="48" cy="48" r="16" fill="none" stroke="#00D58C" stroke-opacity="0.4"/>
+    <path d="M52.4 45.1h-8.8v1h8.8v-1Z" fill="#00D58C"/>
+    <path d="M57.2 45.08 53.1 40.8c-.13-.14-.31-.22-.5-.22h-1.76v1.02h1.63l3.8 4.01-8.23 9.39-8.24-9.39 3.8-4.01h1.66V40.6h-1.8c-.19 0-.37.08-.5.22L38.8 45.07c-.25.26-.26.67-.02.94l8.68 9.89c.13.15.32.23.52.23.2 0 .39-.08.52-.23l8.67-9.89c.24-.27.23-.68-.02-.94Z" fill="#00D58C"/>
+  </g>
+</svg>
