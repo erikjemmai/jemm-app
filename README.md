@@ -1,8 +1,9 @@
-# Jemm Companion
+# Jemm App
 
 Consumer companion app prototype (static HTML, CSS, and JavaScript).
 
-**Live preview:** https://erikjemmai.github.io/jemm-companion-app/
+**Repo:** https://github.com/erikjemmai/jemm-app  
+**Live:** https://erikjemmai.github.io/jemm-app/
 
 ## Run locally
 

@@ -16,5 +16,5 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
         print(fmt % args)
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-print(f"Jemm Companion → http://localhost:{PORT}")
+print(f"Jemm App → http://localhost:{PORT}")
 http.server.HTTPServer(("", PORT), NoCacheHandler).serve_forever()
