@@ -10,7 +10,7 @@ const ROOMS = [
   {
     id: "living",
     name: "Living room",
-    photo: "assets/rooms/cutaway-guest.png",
+    photo: "assets/rooms/scene-living.jpg",
     weather: "84° · Sunny",
     climate: "72°",
     summary: [
@@ -20,7 +20,11 @@ const ROOMS = [
       { k: "Shades", v: "Open" },
     ],
     devices: [
-      { id: "lr-light", name: "Lights", kind: "light", detail: "Warm · 60%" },
+      { id: "lr-ceiling", name: "Ceiling", kind: "light", intensity: 60, kelvin: 2700 },
+      { id: "lr-lamp", name: "Floor lamp", kind: "light", intensity: 42, kelvin: 2200 },
+      { id: "lr-sconce", name: "Sconces", kind: "light", intensity: 35, kelvin: 2700 },
+      { id: "lr-accent", name: "Accent", kind: "light", intensity: 22, kelvin: 3000 },
+      { id: "lr-art", name: "Art lights", kind: "light", on: false, intensity: 50, kelvin: 4000 },
       { id: "lr-climate", name: "Climate", kind: "climate", detail: "72° · Auto" },
       { id: "lr-audio", name: "Audio", kind: "audio", detail: "Jazz · 18%" },
       { id: "lr-shade", name: "Shades", kind: "shade", detail: "Open" },
@@ -36,7 +40,7 @@ const ROOMS = [
   {
     id: "kitchen",
     name: "Kitchen",
-    photo: "assets/rooms/cutaway-workspace.png",
+    photo: "assets/rooms/scene-kitchen.jpg",
     weather: "84° · Sunny",
     climate: "70°",
     summary: [
@@ -46,7 +50,9 @@ const ROOMS = [
       { k: "Fan", v: "Low" },
     ],
     devices: [
-      { id: "k-light", name: "Lights", kind: "light", detail: "Task · 80%" },
+      { id: "k-light", name: "Pendants", kind: "light", intensity: 80, kelvin: 4000 },
+      { id: "k-under", name: "Under cabinet", kind: "light", intensity: 70, kelvin: 3500 },
+      { id: "k-island", name: "Island", kind: "light", intensity: 55, kelvin: 3000 },
       { id: "k-climate", name: "Climate", kind: "climate", detail: "70°" },
       { id: "k-fan", name: "Fan", kind: "fan", detail: "Low" },
       { id: "k-mic", name: "Jemm Mic", kind: "mic", detail: "Ready" },
@@ -61,7 +67,7 @@ const ROOMS = [
   {
     id: "backyard",
     name: "Backyard",
-    photo: "assets/rooms/cutaway-outdoor.png",
+    photo: "assets/rooms/scene-outdoor.jpg",
     weather: "84° · Sunny",
     climate: "84°",
     summary: [
@@ -71,7 +77,9 @@ const ROOMS = [
       { k: "Camera", v: "On" },
     ],
     devices: [
-      { id: "yd-light", name: "Path lights", kind: "light", detail: "Dusk · On" },
+      { id: "yd-light", name: "Path lights", kind: "light", intensity: 40, kelvin: 2700 },
+      { id: "yd-spot", name: "Spotlights", kind: "light", intensity: 55, kelvin: 3000 },
+      { id: "yd-string", name: "String lights", kind: "light", on: false, intensity: 35, kelvin: 2200 },
       { id: "yd-audio", name: "Audio", kind: "audio", detail: "Patio mix" },
       { id: "yd-cam", name: "Camera", kind: "camera", detail: "Armed" },
       { id: "yd-mic", name: "Jemm Mic", kind: "mic", detail: "Outdoor" },
@@ -86,7 +94,7 @@ const ROOMS = [
   {
     id: "bedroom",
     name: "Bedroom",
-    photo: "assets/rooms/cutaway-lobby.png",
+    photo: "assets/rooms/scene-bedroom.jpg",
     weather: "84° · Sunny",
     climate: "68°",
     summary: [
@@ -96,7 +104,9 @@ const ROOMS = [
       { k: "Shades", v: "Half" },
     ],
     devices: [
-      { id: "br-light", name: "Lights", kind: "light", detail: "Low" },
+      { id: "br-light", name: "Ceiling", kind: "light", intensity: 18, kelvin: 2700 },
+      { id: "br-bed", name: "Bedside", kind: "light", on: false, intensity: 12, kelvin: 2200 },
+      { id: "br-closet", name: "Closet", kind: "light", on: false, intensity: 90, kelvin: 4000 },
       { id: "br-climate", name: "Climate", kind: "climate", detail: "68°" },
       { id: "br-shade", name: "Shades", kind: "shade", detail: "Half" },
       { id: "br-audio", name: "Audio", kind: "audio", detail: "Off" },
@@ -114,7 +124,7 @@ const LAKE_ROOMS = [
   {
     id: "great",
     name: "Great room",
-    photo: "assets/rooms/cutaway-guest.png",
+    photo: "assets/rooms/scene-living.jpg",
     weather: "72° · Clear",
     climate: "70°",
     summary: [
@@ -124,7 +134,9 @@ const LAKE_ROOMS = [
       { k: "Shades", v: "Open" },
     ],
     devices: [
-      { id: "gr-light", name: "Lights", kind: "light", detail: "Warm · 50%" },
+      { id: "gr-light", name: "Ceiling", kind: "light", intensity: 50, kelvin: 2700 },
+      { id: "gr-lamp", name: "Floor lamp", kind: "light", intensity: 40, kelvin: 2200 },
+      { id: "gr-sconce", name: "Sconces", kind: "light", on: false, intensity: 30, kelvin: 2700 },
       { id: "gr-climate", name: "Climate", kind: "climate", detail: "70° · Auto" },
       { id: "gr-audio", name: "Audio", kind: "audio", detail: "Off" },
       { id: "gr-mic", name: "Jemm Mic", kind: "mic", detail: "Ready" },
@@ -139,7 +151,7 @@ const LAKE_ROOMS = [
   {
     id: "deck",
     name: "Deck",
-    photo: "assets/rooms/cutaway-outdoor.png",
+    photo: "assets/rooms/scene-outdoor.jpg",
     weather: "72° · Clear",
     climate: "72°",
     summary: [
@@ -149,7 +161,8 @@ const LAKE_ROOMS = [
       { k: "Camera", v: "On" },
     ],
     devices: [
-      { id: "dk-light", name: "String lights", kind: "light", detail: "Dusk · 40%" },
+      { id: "dk-light", name: "String lights", kind: "light", intensity: 40, kelvin: 2200 },
+      { id: "dk-path", name: "Path lights", kind: "light", on: false, intensity: 50, kelvin: 2700 },
       { id: "dk-audio", name: "Audio", kind: "audio", detail: "Off" },
       { id: "dk-cam", name: "Camera", kind: "camera", detail: "Armed" },
     ],
@@ -165,67 +178,67 @@ const LAKE_ROOMS = [
 const SCENE_INFO = {
   evening: {
     blurb: "Warms the lights, eases intensity, and starts a quiet mix so this room feels settled after dark.",
-    photo: "assets/rooms/cutaway-outdoor.png",
-    pos: "center 28%",
+    photo: "assets/rooms/scene-living.jpg",
+    pos: "center 52%",
   },
   "lights-off": {
     blurb: "Turns the lights in this room off. Climate, audio, and the rest of the house stay as they are.",
-    photo: "assets/rooms/cutaway-lobby.png",
-    pos: "center 70%",
+    photo: "assets/rooms/scene-outdoor.jpg",
+    pos: "center 8%",
   },
   play: {
     blurb: "Starts audio in this room at a comfortable volume without changing lights or climate.",
-    photo: "assets/rooms/cutaway-guest.png",
-    pos: "18% 42%",
+    photo: "assets/rooms/scene-media.jpg",
+    pos: "center 40%",
   },
   climate: {
     blurb: "Holds a comfortable climate in this room. Lights and audio are left alone.",
-    photo: "assets/rooms/cutaway-workspace.png",
-    pos: "center 55%",
+    photo: "assets/rooms/scene-living.jpg",
+    pos: "78% 62%",
   },
   cook: {
     blurb: "Bright task lighting and a low fan so the kitchen is ready to cook without heating the whole house.",
-    photo: "assets/rooms/cutaway-workspace.png",
+    photo: "assets/rooms/scene-kitchen.jpg",
     pos: "70% 40%",
   },
   fan: {
     blurb: "Runs the fan on low for air movement. Lights stay as you left them.",
-    photo: "assets/rooms/cutaway-workspace.png",
-    pos: "center 20%",
+    photo: "assets/rooms/scene-kitchen.jpg",
+    pos: "center 18%",
   },
   quiet: {
     blurb: "Stops audio and drops the lights so this room can stay in the background.",
-    photo: "assets/rooms/cutaway-lobby.png",
+    photo: "assets/rooms/scene-bedroom.jpg",
     pos: "80% 40%",
   },
   away: {
     blurb: "Locks the outdoor area down: path lights off, camera armed, audio stopped.",
-    photo: "assets/rooms/cutaway-outdoor.png",
+    photo: "assets/rooms/scene-outdoor.jpg",
     pos: "center 60%",
   },
   lock: {
     blurb: "Turns the deck down for the night and arms the camera so you can leave it.",
-    photo: "assets/rooms/cutaway-outdoor.png",
+    photo: "assets/rooms/scene-outdoor.jpg",
     pos: "70% 50%",
   },
   sleep: {
     blurb: "Low warm light, cooler climate, and shades down so the bedroom is ready for sleep.",
-    photo: "assets/rooms/cutaway-lobby.png",
+    photo: "assets/rooms/scene-bedroom.jpg",
     pos: "center 30%",
   },
   shades: {
     blurb: "Sets the shades to a restful half-down position. Lights and climate stay put.",
-    photo: "assets/rooms/cutaway-guest.png",
-    pos: "center 80%",
+    photo: "assets/rooms/scene-living.jpg",
+    pos: "center 88%",
   },
   arrive: {
     blurb: "Warms the great room as you walk in: lights on, climate auto, audio ready if you want it.",
-    photo: "assets/rooms/cutaway-guest.png",
+    photo: "assets/rooms/scene-living.jpg",
     pos: "40% 30%",
   },
   movie: {
     blurb: "Dims the lights, drops the shades, and routes audio for watching in this room.",
-    photo: "assets/rooms/cutaway-guest.png",
+    photo: "assets/rooms/scene-media.jpg",
     pos: "center 50%",
   },
 };
@@ -521,7 +534,13 @@ function hereRoom() {
 }
 
 function defaultCtl(d) {
-  if (d.kind === "light") return { on: true, intensity: 60, kelvin: 2700 };
+  if (d.kind === "light") {
+    return {
+      on: d.on !== false,
+      intensity: d.intensity ?? 60,
+      kelvin: d.kelvin ?? 2700,
+    };
+  }
   if (d.kind === "audio") return { on: true, volume: 18, source: "Jazz" };
   if (d.kind === "climate") return { on: true, temp: 72, mode: "auto" };
   if (d.kind === "shade") return { on: true, pos: 80 };
@@ -744,7 +763,7 @@ function topnav({ back, mark = true } = {}) {
       </div>
       ${mark ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
       <div class="topnav__side topnav__side--end">
-        <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/nav/bell.svg")}</button>
+        <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/icons/16/notifications.svg")}</button>
         <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>
       </div>
     </header>`;
@@ -755,7 +774,7 @@ function homeSwitcher() {
   return `
     <div class="prop-switch" data-stop>
       <button type="button" class="chip" data-act="toggle-home-menu" aria-expanded="${state.homeMenu ? "true" : "false"}">
-        ${icon("assets/icons/icon-home.svg")} ${home.name}
+        ${icon("assets/icons/16/property.svg")} ${home.name}
         ${chevron(state.homeMenu ? "up" : "down")}
       </button>
       ${state.homeMenu ? `
@@ -1062,7 +1081,7 @@ function renderFound() {
       <h1 class="eyebrow">Pair your device</h1>
       <div class="hero-row">
         <h2 class="h2">Devices found (1)</h2>
-        <button class="icon-btn" data-go="pair" aria-label="Search again">${icon("assets/icons/icon-search.svg")}</button>
+        <button class="icon-btn" data-go="pair" aria-label="Search again">${icon("assets/icons/16/scan.svg")}</button>
       </div>
       <div class="card card--hero">
         <span class="chip chip--soft">Never paired</span>
@@ -1125,7 +1144,7 @@ function renderConnecting() {
         <div class="connect-visual">
           <img src="assets/devices/hero-arc.svg" alt="" width="32" height="62" />
           <div class="dots" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-          ${icon("assets/icons/icon-home.svg")}
+          ${icon("assets/icons/16/home.svg")}
         </div>
         <h2 class="h2">${copy.title}</h2>
         <p class="muted">${copy.body}</p>
@@ -1205,10 +1224,10 @@ function homeStats() {
   const playing = playingNow();
   const unlocked = Object.values(state.doors || {}).filter((v) => v === "unlocked").length;
   return [
-    { k: "People home", v: String(people.length), peek: "people" },
-    { k: "Lights on", v: String(lights.length), peek: "lights" },
-    { k: "Rooms playing", v: String(new Set(playing.map((d) => d.roomId)).size), peek: "playing" },
-    { k: "Security", v: unlocked ? `${unlocked} open` : "Secure", peek: "security", alert: unlocked > 0 },
+    { k: "People home", v: String(people.length), peek: "people", icon: "assets/icons/16/property.svg" },
+    { k: "Lights on", v: String(lights.length), peek: "lights", icon: "assets/devices/icon-light.svg" },
+    { k: "Rooms playing", v: String(new Set(playing.map((d) => d.roomId)).size), peek: "playing", icon: "assets/devices/icon-audio.svg" },
+    { k: "Security", v: unlocked ? `${unlocked} open` : "Secure", peek: "security", alert: unlocked > 0, icon: "assets/icons/16/notifications.svg" },
   ];
 }
 
@@ -1218,7 +1237,7 @@ function statsFor(room) {
     <div class="stat-grid">
       ${items.map((s) => `
         <button class="stat ${s.alert ? "is-alert" : ""}" ${s.peek ? `data-act="home-peek" data-peek-kind="${s.peek}"` : `data-go="${room ? "room" : "rooms"}" data-room="${room ? room.id : ""}"`}>
-          <span>${s.k}</span>
+          <span>${s.icon ? icon(s.icon) : ""}${s.k}</span>
           <strong>${s.v}</strong>
         </button>`).join("")}
     </div>`;
@@ -1704,8 +1723,8 @@ function renderMore() {
         ${chevron("right")}
       </button>
       <div class="card list-card">
-        <button class="row" data-go="devices">${icon("assets/devices/icon-light.svg", "glyph")} <span class="grow">Devices</span> <span class="muted">${rooms().reduce((n, r) => n + r.devices.length, 0)}</span> ${chevron("right")}</button>
-        <button class="row" data-go="insights">${icon("assets/nav/icon-insights.svg", "glyph")} <span class="grow">Insights</span> ${chevron("right")}</button>
+        <button class="row" data-go="devices">${icon("assets/icons/16/devices.svg", "glyph")} <span class="grow">Devices</span> <span class="muted">${rooms().reduce((n, r) => n + r.devices.length, 0)}</span> ${chevron("right")}</button>
+        <button class="row" data-go="insights">${icon("assets/icons/16/dashboard.svg", "glyph")} <span class="grow">Insights</span> ${chevron("right")}</button>
         <button class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
         <button class="row" data-act="help">${icon("assets/nav/help.svg", "glyph")} <span class="grow">Help</span> ${chevron("right")}</button>
       </div>
@@ -1948,31 +1967,122 @@ function renderHelp() {
     ${state.loggedIn ? bottomNav("more") : ""}`;
 }
 
-function renderNotify() {
+function notifyItems() {
   const here = hereRoom();
   const req = state.adminRequest;
-  const notes = [
-    req?.status === "pending" ? { t: `${req.name} asked Jemm`, d: `“${req.ask}” · Waiting for you to review.`, act: true } : null,
-    req?.status === "denied" ? { t: "Vault request denied", d: "Jemm told Mia no. The vault stays locked." } : null,
-    state.doors?.patio === "unlocked" ? { t: "Patio door just unlocked", d: "Live demo. The patio shows red on the security plan.", peek: "security" } : null,
-    here
-      ? { t: `You’re in the ${here.name.toLowerCase()}`, d: "Jemm switched Home to this room’s devices and quick options." }
-      : { t: "You’re away", d: "Home is showing whole-house status. Pick a room to look in." },
-    { t: "Alex is in the kitchen", d: "Household profile is home." },
-    { t: "Mia is in the bedroom", d: "Child profile is home." },
-    { t: "Arc is online", d: "All local. No cloud hop." },
-  ].filter(Boolean);
+  const lake = state.homeId === "lake";
+  const climateId = lake ? "gr-climate" : "br-climate";
+  const camId = lake ? "dk-cam" : "yd-cam";
+  const jamId = lake ? "dk-path" : "lr-shade";
+  const leakRoom = lake ? "great" : "kitchen";
+  const items = [];
+  if (req?.status === "pending") {
+    items.push({
+      tone: "alert",
+      kicker: "Needs you",
+      t: `${req.name} asked Jemm`,
+      d: `“${req.ask}” · Kids and guests can’t unlock the vault.`,
+      attrs: `data-act="home-peek" data-peek-kind="security"`,
+    });
+  }
+  if (req?.status === "denied") {
+    items.push({
+      tone: "ok",
+      kicker: "Held",
+      t: "Vault request denied",
+      d: "Jemm told Mia no. The vault stays locked.",
+      attrs: `data-go="profile" data-person="mia"`,
+    });
+  }
+  if (state.doors?.patio === "unlocked") {
+    items.push({
+      tone: "warn",
+      kicker: "Warning",
+      t: "Patio door is unlocked",
+      d: "Jemm caught it live. Tap to lock it from the security plan.",
+      attrs: `data-act="home-peek" data-peek-kind="security"`,
+    });
+  }
+  items.push(
+    {
+      tone: "alert",
+      kicker: "Fault",
+      t: lake ? "Great room climate is 4° above target" : "Bedroom climate is 4° above target",
+      d: "Jemm held the set point and is asking before it overrides.",
+      attrs: `data-device="${climateId}"`,
+    },
+    {
+      tone: "alert",
+      kicker: "Alert",
+      t: lake ? "Moisture near the great room" : "Moisture under the kitchen sink",
+      d: `Leak sensor tripped. Jemm wants you in the ${lake ? "great room" : "kitchen"}.`,
+      attrs: `data-go="room" data-room="${leakRoom}"`,
+    },
+    {
+      tone: "warn",
+      kicker: "Warning",
+      t: lake ? "Deck camera dropped offline" : "Backyard camera dropped offline",
+      d: "Last frame 12 minutes ago. Jemm is retrying the local stream.",
+      attrs: `data-device="${camId}"`,
+    },
+    {
+      tone: "warn",
+      kicker: "Warning",
+      t: lake ? "Deck path lights faulted" : "Living room shade jammed",
+      d: lake
+        ? "One fixture stopped responding. Jemm paused the evening scene so it wouldn’t force it."
+        : "Left panel stopped at 42%. Jemm paused so it wouldn’t force it.",
+      attrs: `data-device="${jamId}"`,
+    },
+    {
+      tone: "alert",
+      kicker: "Blocked",
+      t: "Sam tried a restricted scene",
+      d: "Guest profile asked to disarm outdoor cameras. Jemm said no.",
+      attrs: `data-go="profile" data-person="sam"`,
+    },
+    {
+      tone: "ok",
+      kicker: here ? "Here" : "Away",
+      t: here ? `You’re in the ${here.name.toLowerCase()}` : "You’re away",
+      d: here
+        ? "Jemm switched Home to this room’s devices and scenes."
+        : "Home is showing whole-house status. Pick a room to look in.",
+      attrs: `data-go="home"`,
+    },
+    {
+      tone: "ok",
+      kicker: "Info",
+      t: "Alex is in the kitchen",
+      d: "Household profile is home.",
+      attrs: `data-go="profile" data-person="alex"`,
+    },
+    {
+      tone: "ok",
+      kicker: "Info",
+      t: "Arc is online",
+      d: "All local. No cloud hop.",
+      attrs: `data-go="jemm"`,
+    },
+  );
+  return items;
+}
+
+function renderNotify() {
+  const req = state.adminRequest;
   return `
     ${topnav({ back: state.loggedIn ? "home" : "welcome" })}
     <div class="stage stack-lg">
       <h1 class="h1">Notifications</h1>
-      ${req?.status === "pending" ? adminRequestCard() : ""}
+      <p class="muted">Tap an alert to open the room, device, or person Jemm is watching.</p>
+      ${req?.status === "pending" || req?.status === "denied" ? adminRequestCard() : ""}
       <div class="stack-sm">
-        ${notes.map((n) => `
-          <article class="card ${n.act || n.peek ? "card--alert" : ""}" ${n.peek ? `data-act="home-peek" data-peek-kind="${n.peek}"` : ""}>
+        ${notifyItems().map((n) => `
+          <button type="button" class="card card--note ${n.tone === "alert" ? "card--alert" : n.tone === "warn" ? "card--warn" : ""}" ${n.attrs}>
+            <span class="note-tone note-tone--${n.tone}">${n.kicker}</span>
             <strong>${n.t}</strong>
             <p class="muted">${n.d}</p>
-          </article>`).join("")}
+          </button>`).join("")}
       </div>
     </div>
     ${state.loggedIn ? bottomNav("home") : ""}`;
@@ -2138,7 +2248,7 @@ function helpSheet() {
       <aside class="sheet__panel help-side" data-stop role="dialog" aria-labelledby="help-title">
         <header class="hero-row">
           <h2 class="h2" id="help-title">${state.helpChat ? "Live chat" : "Help"}</h2>
-          <button type="button" class="icon-btn" data-act="close-help" aria-label="Close">${icon("assets/nav/close.svg")}</button>
+          <button type="button" class="icon-btn" data-act="close-help" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
         ${state.helpChat ? `
           <p class="muted">You’re chatting with Jemm Support. This stays on-device for the demo.</p>
@@ -2159,7 +2269,7 @@ function helpSheet() {
               </span>
             </a>
             <a class="row" href="mailto:support@jemmtec.com">
-              ${icon("assets/nav/bell.svg", "glyph")}
+              ${icon("assets/icons/16/notifications.svg", "glyph")}
               <span class="grow">
                 <strong>Email</strong>
                 <span class="muted" style="display:block;font-size:12px">support@jemmtec.com</span>
@@ -2216,7 +2326,7 @@ function deviceSheet(keepSheet = false) {
               <p class="muted">${d.room}${here ? " · You’re here" : ""}</p>
             </div>
           </div>
-          <button type="button" class="icon-btn" data-act="close-sheet" aria-label="Close">${icon("assets/nav/close.svg")}</button>
+          <button type="button" class="icon-btn" data-act="close-sheet" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
         ${sheetToolbar(d, c)}
         <div class="tabs" role="tablist" aria-label="Device">
@@ -2239,7 +2349,7 @@ function adminRequestCard() {
   if (!req || req.status === "cleared") return "";
   if (req.status === "denied") {
     return `
-      <article class="card card--alert">
+      <article class="card card--warn">
         <p class="kicker">Jemm held the line</p>
         <h2 class="h2">Vault request denied</h2>
         <p>I told ${req.name.split(" ")[0]} no. The vault stays locked.</p>
@@ -2361,7 +2471,7 @@ function homePeekOverlay() {
       <aside class="peek-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="peek-title">
         <header class="hero-row">
           <h2 class="h2" id="peek-title">${titles[kind] || "Home"}</h2>
-          <button type="button" class="icon-btn" data-act="close-peek" aria-label="Close">${icon("assets/nav/close.svg")}</button>
+          <button type="button" class="icon-btn" data-act="close-peek" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
         ${body}
       </aside>
@@ -2395,7 +2505,7 @@ function jemmPlaceMenu() {
 function jemmStripIf(place) {
   if (!state.loggedIn || !state.jemmVisible || state.jemmPlace !== place) return "";
   return `
-    <div class="jemm-strip ${state.voice ? "is-listening" : ""} is-${state.jemmPlace} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? "is-amber" : ""}">
+    <div class="jemm-strip ${state.voice ? "is-listening" : ""} is-${state.jemmPlace} ${state.jemmMood === "alert" ? "is-alert" : state.jemmMood === "amber" ? "is-amber" : ""}">
       <button type="button" class="jemm-orb ${state.voice ? "is-live" : ""}" data-act="voice" aria-label="Talk to Jemm">
         ${jemmGlow()}
         ${jemmFace()}
