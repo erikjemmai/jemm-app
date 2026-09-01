@@ -1,4 +1,10 @@
 const KEY = "jemm-companion";
+const APP_LOOKS = ["v1", "v2", "v3"];
+const DEVICE_OPENS = [
+  { id: "sheet", label: "Bottom sheet" },
+  { id: "page", label: "New page" },
+  { id: "side", label: "Right sheet" },
+];
 const AVATARS = [
   { id: "1", src: "assets/avatars/1.png", label: "Bright" },
   { id: "2", src: "assets/avatars/2.png", label: "Warm" },
@@ -382,7 +388,7 @@ const KIND_LABEL = {
 };
 const KIND_ORDER = ["light", "climate", "audio", "shade", "fan", "camera", "mic"];
 
-const APP_SCREENS = new Set(["home", "rooms", "profiles", "more", "devices", "insights", "settings", "jemm", "help", "notify", "profile", "room", "scene", "history"]);
+const APP_SCREENS = new Set(["home", "rooms", "profiles", "more", "devices", "insights", "settings", "jemm", "help", "notify", "profile", "room", "scene", "history", "device"]);
 const ONBOARD = new Set(["splash", "welcome", "login", "pair", "found", "wifi", "connecting", "avatar", "account", "done"]);
 
 function blank() {
@@ -418,6 +424,11 @@ function blank() {
     jemmMood: "ok",
     homePeek: null,
     deviceView: "grid",
+    appLook: "v2",
+    deviceOpen: "sheet",
+    previewMenu: false,
+    viewingDevice: null,
+    deviceBack: "home",
     deviceKind: "all",
     roomsView: "grid",
     peopleView: "list",
@@ -445,7 +456,9 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, previewMenu: false };
+    next.appLook = normalizeLook(next.appLook);
+    next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
     if (saved.roomsView === "list" && saved.peopleView == null) next.roomsView = "grid";
     return next;
   } catch {
@@ -496,12 +509,21 @@ function startLearnPulse() {
 }
 
 function persist() {
-  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, ...rest } = state;
+  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, previewMenu, ...rest } = state;
   localStorage.setItem(KEY, JSON.stringify(rest));
+}
+
+function normalizeLook(value) {
+  return APP_LOOKS.includes(value) ? value : "v2";
+}
+
+function normalizeDeviceOpen(value) {
+  return value === "page" || value === "side" ? value : "sheet";
 }
 
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.look = normalizeLook(state.appLook);
 }
 
 function patch(next, redraw = true) {
@@ -514,7 +536,45 @@ function patch(next, redraw = true) {
 }
 
 function go(screen, extra = {}) {
-  patch({ screen, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, ...extra });
+  patch({
+    screen,
+    sheet: null,
+    sheetDevice: null,
+    sheetSize: "full",
+    sheetTab: "controls",
+    sheetScene: null,
+    homePeek: null,
+    voice: false,
+    jemmMenu: false,
+    homeMenu: false,
+    helpSheet: false,
+    helpChat: false,
+    previewMenu: false,
+    viewingDevice: screen === "device" ? extra.viewingDevice || state.viewingDevice : null,
+    ...extra,
+  });
+}
+
+function openDevice(id, extra = {}) {
+  if (!id || !findDevice(id)) return;
+  const mode = normalizeDeviceOpen(state.deviceOpen);
+  const from = state.screen !== "device" && APP_SCREENS.has(state.screen) ? state.screen : (state.deviceBack || "home");
+  if (mode === "page") {
+    go("device", { viewingDevice: id, deviceBack: from, sheetTab: extra.sheetTab || "controls" });
+    return;
+  }
+  patch({
+    sheetDevice: id,
+    viewingDevice: id,
+    deviceBack: from,
+    sheetSize: "full",
+    sheetTab: extra.sheetTab || "controls",
+    sheetScene: null,
+    homeMenu: false,
+    jemmMenu: false,
+    previewMenu: false,
+    homePeek: extra.keepPeek ? state.homePeek : null,
+  });
 }
 
 function currentHome() {
@@ -755,14 +815,62 @@ function playJemmVideos() {
   });
 }
 
+function previewMenuBtn() {
+  if (!state.loggedIn) return "";
+  const look = normalizeLook(state.appLook).toUpperCase();
+  const open = DEVICE_OPENS.find((o) => o.id === normalizeDeviceOpen(state.deviceOpen));
+  return `
+    <button type="button" class="preview-menu__btn ${state.previewMenu ? "is-open" : ""}" data-act="toggle-preview-menu" aria-pressed="${state.previewMenu ? "true" : "false"}" aria-expanded="${state.previewMenu ? "true" : "false"}">
+      Config
+      <span>${look} · ${open ? open.label : "Sheet"}</span>
+    </button>`;
+}
+
+function previewSheet() {
+  if (!state.previewMenu) return "";
+  const look = normalizeLook(state.appLook);
+  const open = normalizeDeviceOpen(state.deviceOpen);
+  return `
+    <div class="preview-overlay" data-act="close-preview">
+      <aside class="preview-sheet" data-stop role="dialog" aria-labelledby="preview-sheet-title">
+        <header class="preview-sheet__head">
+          <h2 id="preview-sheet-title">Config</h2>
+          <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close config">${icon("assets/icons/24/close.svg")}</button>
+        </header>
+        <div class="preview-sheet__body">
+          <p class="preview-sheet__hint">Changes apply immediately so you can A/B/C the consumer app. Devices stay tappable in every version.</p>
+          <div class="preview-sheet__block">
+            <span>App look</span>
+            <div class="preview-sheet__seg" role="group" aria-label="App look">
+              ${APP_LOOKS.map((id) => `
+                <button type="button" class="${look === id ? "is-on" : ""}" data-act="set-app-look" data-value="${id}" aria-pressed="${look === id ? "true" : "false"}">${id.toUpperCase()}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${look === "v1" ? "Original companion: square buttons, tighter type, neon here-state. Devices open from the card." : look === "v3" ? "Chunky test: larger tap targets, bigger tiles, more page pad." : "Portal-aligned: pill buttons, 16px icons, quieter Jemm chrome."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Device details</span>
+            <div class="preview-sheet__seg preview-sheet__seg--wrap" role="group" aria-label="How a device opens">
+              ${DEVICE_OPENS.map((item) => `
+                <button type="button" class="${open === item.id ? "is-on" : ""}" data-act="set-device-open" data-value="${item.id}" aria-pressed="${open === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${open === "page" ? "Full page with a back chevron. Same controls, no overlay." : open === "side" ? "Right sidesheet plus dimmed overlay, like the integrator portal." : "Bottom sheet on mobile. Drag down or tap outside to dismiss."}</p>
+          </div>
+        </div>
+      </aside>
+    </div>`;
+}
+
 function topnav({ back, mark = true } = {}) {
   return `
     <header class="topnav">
       <div class="topnav__side">
-        ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : ""}
+        ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : previewMenuBtn()}
       </div>
       ${mark ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
       <div class="topnav__side topnav__side--end">
+        ${back ? previewMenuBtn() : ""}
         <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/icons/16/notifications.svg")}</button>
         <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>
       </div>
@@ -914,10 +1022,10 @@ function kindWell(kind, extra = "") {
 }
 
 function deviceCard(d, list) {
-  const c = ctl(d);
+  const selected = state.sheetDevice === d.id || state.viewingDevice === d.id;
   if (list) {
     return `
-      <button type="button" class="card-row ${c.on ? "is-on" : ""}" data-device="${d.id}">
+      <button type="button" class="card-row ${selected ? "is-on" : ""}" data-device="${d.id}">
         ${kindWell(d.kind, "card-icon--row")}
         <span class="grow">
           <span class="name">${d.name}</span>
@@ -927,7 +1035,7 @@ function deviceCard(d, list) {
       </button>`;
   }
   return `
-    <button type="button" class="card-tile ${c.on ? "is-on" : ""}" data-device="${d.id}">
+    <button type="button" class="card-tile ${selected ? "is-on" : ""}" data-device="${d.id}">
       <span class="name">${d.name}</span>
       ${kindWell(d.kind, "card-icon--tile")}
       <span class="meta">${deviceDetail(d)}</span>
@@ -2304,21 +2412,62 @@ function helpSheet() {
     </div>`;
 }
 
-function deviceSheet(keepSheet = false) {
-  if (!state.sheetDevice) return "";
-  const d = findDevice(state.sheetDevice);
-  if (!d) return "";
+function devicePanel(d, { page = false } = {}) {
   const c = ctl(d);
   const here = state.presence === d.roomId;
   const tab = state.sheetTab === "scenes" ? "scenes" : "controls";
   const scenes = scenesForDevice(d);
+  const mode = normalizeDeviceOpen(state.deviceOpen);
   return `
-    <div class="sheet sheet--device is-full" data-act="close-sheet">
+    ${sheetToolbar(d, c)}
+    <div class="tabs" role="tablist" aria-label="Device">
+      <button type="button" class="${tab === "controls" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="controls" role="tab" aria-selected="${tab === "controls" ? "true" : "false"}">Controls</button>
+      <button type="button" class="${tab === "scenes" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="scenes" role="tab" aria-selected="${tab === "scenes" ? "true" : "false"}">Scenes${scenes.length ? ` · ${scenes.length}` : ""}</button>
+    </div>
+    <div class="sheet-body">
+      ${tab === "scenes" ? sheetScenes(d) : `
+        <p class="sheet-status">${c.on ? deviceDetail(d) : "Off"}</p>
+        ${sheetControls(d, c)}
+      `}
+      <p class="muted sheet-hint">${page ? "Back returns to where you were." : mode === "side" ? "Tap the dimmed area to dismiss." : "Pull down to dismiss."}</p>
+    </div>`;
+}
+
+function renderDevicePage() {
+  const d = findDevice(state.viewingDevice);
+  if (!d) return renderHomeHere(hereRoom() || rooms()[0]);
+  const here = state.presence === d.roomId;
+  const back = state.deviceBack && APP_SCREENS.has(state.deviceBack) && state.deviceBack !== "device" ? state.deviceBack : "home";
+  return `
+    ${topnav({ back })}
+    ${jemmStripIf("top")}
+    <div class="stage stack-lg">
+      <div class="home-head">
+        <p class="kicker">${d.room}${here ? " · You’re here" : ""}</p>
+        <h1 class="h1">${d.name}</h1>
+        <p class="muted">Device page test. Same controls as the sheet, with a back chevron.</p>
+      </div>
+      ${devicePanel(d, { page: true })}
+    </div>
+    ${jemmStripIf("bottom")}
+    ${bottomNav(back === "rooms" || back === "room" ? "rooms" : back === "more" || back === "devices" ? "more" : "home")}`;
+}
+
+function deviceSheet(keepSheet = false) {
+  if (normalizeDeviceOpen(state.deviceOpen) === "page") return "";
+  if (!state.sheetDevice) return "";
+  const d = findDevice(state.sheetDevice);
+  if (!d) return "";
+  const here = state.presence === d.roomId;
+  const side = normalizeDeviceOpen(state.deviceOpen) === "side";
+  return `
+    <div class="sheet sheet--device ${side ? "is-side" : "is-full"}" data-act="close-sheet">
       <aside class="sheet__panel${keepSheet ? " is-live" : ""}" data-stop role="dialog" aria-modal="true" aria-labelledby="sheet-name">
-        <button type="button" class="sheet-grab" data-sheet-grab aria-label="Dismiss sheet">
-          <span class="handle"></span>
-        </button>
-        <header class="sheet-head" data-sheet-grab>
+        ${side ? "" : `
+          <button type="button" class="sheet-grab" data-sheet-grab aria-label="Dismiss sheet">
+            <span class="handle"></span>
+          </button>`}
+        <header class="sheet-head"${side ? "" : " data-sheet-grab"}>
           <div class="sheet-head__id">
             <span class="card-icon card-icon--row">${icon(deviceIcon(d.kind))}</span>
             <div class="grow">
@@ -2328,18 +2477,7 @@ function deviceSheet(keepSheet = false) {
           </div>
           <button type="button" class="icon-btn" data-act="close-sheet" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
-        ${sheetToolbar(d, c)}
-        <div class="tabs" role="tablist" aria-label="Device">
-          <button type="button" class="${tab === "controls" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="controls" role="tab" aria-selected="${tab === "controls" ? "true" : "false"}">Controls</button>
-          <button type="button" class="${tab === "scenes" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="scenes" role="tab" aria-selected="${tab === "scenes" ? "true" : "false"}">Scenes${scenes.length ? ` · ${scenes.length}` : ""}</button>
-        </div>
-        <div class="sheet-body">
-          ${tab === "scenes" ? sheetScenes(d) : `
-            <p class="sheet-status">${c.on ? deviceDetail(d) : "Off"}</p>
-            ${sheetControls(d, c)}
-          `}
-          <p class="muted sheet-hint">Pull down to dismiss.</p>
-        </div>
+        ${devicePanel(d)}
       </aside>
     </div>`;
 }
@@ -2430,7 +2568,7 @@ function playingPeek() {
       ${list.map((d) => {
         const c = ctl(d);
         return `
-          <button type="button" class="card-row is-on" data-device="${d.id}">
+          <button type="button" class="card-row ${state.sheetDevice === d.id || state.viewingDevice === d.id ? "is-on" : ""}" data-device="${d.id}">
             ${kindWell(d.kind, "card-icon--row")}
             <span class="grow">
               <span class="name">${c.source || d.name}</span>
@@ -2573,6 +2711,7 @@ function views() {
     jemm: renderJemm,
     help: renderHelp,
     notify: renderNotify,
+    device: renderDevicePage,
   };
 }
 
@@ -2583,11 +2722,12 @@ function render() {
   const app = document.getElementById("app");
   const keepSheet = Boolean(state.sheetDevice && liveSheetId === state.sheetDevice);
   app.innerHTML = `
-    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""}">
+    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""}" data-look="${normalizeLook(state.appLook)}" data-device-open="${normalizeDeviceOpen(state.deviceOpen)}">
       ${fn()}
       ${deviceSheet(keepSheet)}
       ${homePeekOverlay()}
       ${helpSheet()}
+      ${previewSheet()}
       ${walkFlash()}
       ${voiceOverlay()}
       ${toastHtml()}
@@ -2606,7 +2746,7 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-go],[data-act],[data-presence],[data-avatar],[data-device],[data-scene],[data-peek],[data-room],[data-field-toggle]");
   if (stop && (!t || !stop.contains(t))) return;
   if (!t) {
-    if (state.homeMenu || state.jemmMenu) patch({ homeMenu: false, jemmMenu: false });
+    if (state.homeMenu || state.jemmMenu || state.previewMenu) patch({ homeMenu: false, jemmMenu: false, previewMenu: false });
     return;
   }
   if (t.dataset.go) {
@@ -2629,7 +2769,7 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (t.dataset.device && !t.dataset.act) {
-    patch({ sheetDevice: t.dataset.device, sheetSize: "full", sheetTab: "controls", sheetScene: null, homeMenu: false, jemmMenu: false, homePeek: t.dataset.keepPeek ? state.homePeek : null });
+    openDevice(t.dataset.device, { keepPeek: Boolean(t.dataset.keepPeek) });
     return;
   }
   if (t.dataset.scene && !t.dataset.act && !t.dataset.go) {
@@ -2661,7 +2801,28 @@ document.addEventListener("click", (e) => {
   if (act === "dismiss-coach") patch({ coach: false });
   if (act === "clear-peek") patch({ viewingRoom: null });
   if (act === "theme") patch({ theme: state.theme === "light" ? "dark" : "light" });
-  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false });
+  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false, previewMenu: false });
+  if (act === "toggle-preview-menu") patch({ previewMenu: !state.previewMenu, homeMenu: false, jemmMenu: false });
+  if (act === "close-preview") patch({ previewMenu: false });
+  if (act === "set-app-look") patch({ appLook: normalizeLook(t.dataset.value), previewMenu: true });
+  if (act === "set-device-open") {
+    const deviceOpen = normalizeDeviceOpen(t.dataset.value);
+    const id = state.sheetDevice || state.viewingDevice;
+    if (deviceOpen === "page" && id) {
+      const from = state.screen !== "device" ? state.screen : (state.deviceBack || "home");
+      go("device", { viewingDevice: id, deviceBack: from, deviceOpen, previewMenu: true, sheetDevice: null });
+    } else if (id) {
+      patch({
+        deviceOpen,
+        previewMenu: true,
+        screen: state.screen === "device" ? (state.deviceBack || "home") : state.screen,
+        sheetDevice: id,
+        viewingDevice: id,
+      });
+    } else {
+      patch({ deviceOpen, previewMenu: true });
+    }
+  }
   if (act === "set-home") setHome(t.dataset.home);
   if (act === "walk-next") {
     walkNext();
@@ -2669,7 +2830,10 @@ document.addEventListener("click", (e) => {
   }
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
   if (act === "set-kind") patch({ deviceKind: t.dataset.kind });
-  if (act === "close-sheet") patch({ sheetDevice: null, sheetSize: "full", sheetTab: "controls" });
+  if (act === "close-sheet") {
+    if (state.screen === "device") go(state.deviceBack || "home");
+    else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
+  }
   if (act === "close-scene") patch({ sheetScene: null });
   if (act === "run-scene") {
     const roomId = state.sheetScene?.roomId || state.viewingRoom;
@@ -2899,6 +3063,10 @@ document.addEventListener("pointercancel", () => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
+  if (state.previewMenu) {
+    patch({ previewMenu: false });
+    return;
+  }
   if (state.homePeek) {
     patch({ homePeek: null });
     return;
@@ -2908,7 +3076,11 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (state.sheetDevice) {
-    patch({ sheetDevice: null, sheetSize: "full", sheetTab: "controls" });
+    patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
+    return;
+  }
+  if (state.screen === "device") {
+    go(state.deviceBack || "home");
     return;
   }
   if (state.helpSheet) patch({ helpSheet: false, helpChat: false });
