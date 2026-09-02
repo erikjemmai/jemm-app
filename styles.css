@@ -52,7 +52,7 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  --max-app: 430px;
+  --max-app: 100%;
   --max-btn: 327px;
   --card-tile: 174px;
   --tile-meta: #8c9196;
@@ -2023,7 +2023,7 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
 }
 
 @media (min-width: 768px) {
-  :root { --page-pad: 32px; --max-app: 720px; --bottom-nav: 96px; }
+  :root { --page-pad: 32px; --max-app: 680px; --bottom-nav: 96px; }
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
   .quick { grid-template-columns: 1fr 1fr; }
   .scene-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
