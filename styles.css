@@ -1564,7 +1564,9 @@ html[data-theme="light"] .toggle.is-on::after { background: #fff; }
   position: fixed;
   inset: 0;
   z-index: 40;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   display: grid;
   place-items: end center;
 }
@@ -1573,8 +1575,9 @@ html[data-theme="light"] .toggle.is-on::after { background: #fff; }
 .sheet--device {
   inset: 0;
   padding: 0;
-  background: color-mix(in srgb, var(--ink) 58%, transparent);
-  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(20px) saturate(1.3);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
   z-index: 40;
   place-items: end center;
 }
@@ -2988,7 +2991,9 @@ html[data-theme="light"] .device-search::placeholder { color: rgba(0, 0, 0, .35)
 }
 .sheet--side,
 .sheet--account {
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 .sheet--side {
   place-items: stretch end;
@@ -3542,7 +3547,9 @@ html[data-theme="light"] .pos-stepper__val { color: var(--ink); }
 /* legacy full-screen voice (kept for fallback) */
 /* ── Jemm sheet (snap / full) ─────────────────────────────────── */
 .jemm-overlay {
-  background: rgba(0,0,0,.45);
+  background: rgba(0,0,0,.4);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   z-index: 40;
   inset: 0 0 var(--bottom-nav, 64px) 0;
   display: flex;
@@ -3552,7 +3559,7 @@ html[data-theme="light"] .pos-stepper__val { color: var(--ink); }
 }
 .jemm-overlay.is-expanded {
   align-items: stretch;
-  background: rgba(0,0,0,.7);
+  background: rgba(0,0,0,.55);
 }
 .jemm-sheet {
   width: 100%;
@@ -5207,7 +5214,9 @@ button.card--note:hover {
 
 .sheet--fav {
   z-index: 50;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 .sheet--fav.is-sheet { place-items: end center; }
 .sheet--fav .fav-picker {
@@ -5243,7 +5252,9 @@ button.card--note:hover {
 }
 .sheet--preview {
   z-index: 50;
-  background: rgba(0, 0, 0, 0.72);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
 }
 .sheet--preview.is-sheet {
   place-items: end center;
@@ -5528,12 +5539,9 @@ html[data-look="v3"] .sheet-pills button,
 
 /* ── Wake word picker sheet ───────────────────────────────────── */
 .wake-word-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.55);
   z-index: 400;
-  display: flex;
   align-items: flex-end;
+  place-items: unset;
 }
 
 .wake-word-sheet {
