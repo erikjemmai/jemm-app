@@ -19,13 +19,21 @@ const CARD_TONES = [
   { id: "black", label: "Black" },
 ];
 const HOME_PANES = [
-  { id: "status", label: "Status" },
-  { id: "scenes", label: "Scenes" },
+  { id: "home", label: "Home" },
   { id: "devices", label: "Devices" },
 ];
 const HOME_LAYOUTS = [
   { id: "v1", label: "V1" },
   { id: "v2", label: "V2" },
+];
+const HOME_TILES = [
+  { id: "row", label: "Horizontal" },
+  { id: "square", label: "Square" },
+];
+const HOME_INTROS = [
+  { id: "none", label: "Weather" },
+  { id: "greeting", label: "Greeting" },
+  { id: "property", label: "Property" },
 ];
 const SUMMARY_TITLES = {
   status: "Home status",
@@ -67,6 +75,7 @@ const ROOMS = [
       { id: "lr-climate", name: "Climate", kind: "climate", detail: "72° · Auto" },
       { id: "lr-audio", name: "Audio", kind: "audio", detail: "Jazz · 18%" },
       { id: "lr-shade", name: "Shades", kind: "shade", detail: "Open" },
+      { id: "lr-fan", name: "Ceiling fan", kind: "fan", detail: "Low" },
       { id: "lr-mic", name: "Jemm Mic", kind: "mic", detail: "Listening" },
       { id: "lr-front", name: "Front door", kind: "camera", detail: "Live" },
       { id: "lr-drive", name: "Driveway", kind: "camera", detail: "Live" },
@@ -288,7 +297,7 @@ const HOMES = [
     id: "john",
     name: "John Residence",
     city: "Miami, Florida",
-    weather: "84 °F • Sunny",
+    weather: "84° F • Sunny",
     plan: "assets/rooms/floorplan-1.png",
     rooms: ROOMS,
     spots: {
@@ -302,7 +311,7 @@ const HOMES = [
     id: "lake",
     name: "Lake House",
     city: "Tahoe City, CA",
-    weather: "72 °F • Clear",
+    weather: "72° F • Clear",
     plan: "assets/rooms/floorplan-2.png",
     rooms: LAKE_ROOMS,
     spots: {
@@ -405,10 +414,10 @@ const HOME_DOORS = [
   { id: "garage", label: "Garage", t: 36, l: 6, w: 12, h: 16 },
 ];
 const SONGS = [
-  { id: "jazz", title: "Evening Jazz", artist: "Jemm Radio" },
-  { id: "patio", title: "Patio mix", artist: "Outdoor" },
-  { id: "radio", title: "Morning radio", artist: "Local" },
-  { id: "tv", title: "Living room TV", artist: "HDMI" },
+  { id: "jazz", title: "Evening Jazz — Late Night Set", artist: "Jemm Radio" },
+  { id: "patio", title: "Patio mix — Warm air and strings", artist: "Outdoor" },
+  { id: "radio", title: "Morning radio — Sunrise hour", artist: "Local" },
+  { id: "tv", title: "Living room TV — HDMI", artist: "Television" },
 ];
 
 const ICONS = {
@@ -477,6 +486,8 @@ function blank() {
     homeBg: "fill",
     cardTone: "steel",
     homeLayout: "v1",
+    homeTile: "row",
+    homeIntro: "none",
     homePage: 0,
     viewingDevice: null,
     deviceBack: "home",
@@ -519,6 +530,8 @@ function load() {
     next.homeBg = normalizeHomeBg(next.homeBg);
     next.cardTone = normalizeCardTone(next.cardTone);
     next.homeLayout = normalizeHomeLayout(next.homeLayout);
+    next.homeTile = normalizeHomeTile(next.homeTile);
+    next.homeIntro = normalizeHomeIntro(next.homeIntro);
     next.homePage = normalizeHomePage(next.homePage, next.homeLayout);
     if (saved.roomsView === "list" && saved.peopleView == null) next.roomsView = "grid";
     return next;
@@ -598,8 +611,20 @@ function normalizeHomeLayout(value) {
   return value === "v2" ? "v2" : "v1";
 }
 
+function normalizeHomeTile(value) {
+  return value === "square" ? "square" : "row";
+}
+
+function normalizeHomeIntro(value) {
+  return value === "property" || value === "greeting" ? value : "none";
+}
+
 function homePaneCount(layout) {
   return normalizeHomeLayout(layout ?? state?.homeLayout) === "v2" ? 1 : HOME_PANES.length;
+}
+
+function homeDevicesPage() {
+  return homePaneCount() > 1 ? 1 : 0;
 }
 
 function normalizeHomePage(value, layout) {
@@ -1003,6 +1028,8 @@ function previewSheet() {
   const bg = normalizeHomeBg(state.homeBg);
   const tone = normalizeCardTone(state.cardTone);
   const home = normalizeHomeLayout(state.homeLayout);
+  const tile = normalizeHomeTile(state.homeTile);
+  const intro = normalizeHomeIntro(state.homeIntro);
   return `
     <div class="sheet sheet--preview ${dock === "side" ? "is-side" : "is-sheet"}" data-act="close-preview">
       <aside class="sheet__panel preview-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="preview-sheet-title">
@@ -1015,7 +1042,7 @@ function previewSheet() {
           <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close layout test">${icon("assets/icons/24/close.svg")}</button>
         </header>
         <div class="preview-sheet__body">
-          <p class="preview-sheet__hint">Temporary. Switch Home and how a device or summary opens. V1 keeps the swipe pages you have now.</p>
+          <p class="preview-sheet__hint">Temporary. Switch Home pages, first-view tiles, the greeting, and how a device or summary opens.</p>
           <div class="preview-sheet__block">
             <span>Home</span>
             <div class="preview-sheet__seg" role="group" aria-label="Home layout">
@@ -1023,7 +1050,25 @@ function previewSheet() {
                 <button type="button" class="${home === item.id ? "is-on" : ""}" data-act="set-home-layout" data-value="${item.id}" aria-pressed="${home === item.id ? "true" : "false"}">${item.label}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${home === "v2" ? "One Home page: dark steel status tiles, then scenes and cameras. No device list underneath. Tap a category to see those devices." : "Current Home: swipe Status, Scenes, and Devices. Cameras sit on Status and Scenes."}</p>
+            <p class="preview-sheet__note">${home === "v2" ? "One Home page: dark steel status tiles, then scenes and cameras. No device list underneath. Tap a category to see those devices." : "Two Home pages: first is status tiles, scenes, and cameras. Second is devices only."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>First-view tiles</span>
+            <div class="preview-sheet__seg" role="group" aria-label="First-view tile shape">
+              ${HOME_TILES.map((item) => `
+                <button type="button" class="${tile === item.id ? "is-on" : ""}" data-act="set-home-tile" data-value="${item.id}" aria-pressed="${tile === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${tile === "square" ? "Category tiles are square and use the extra width." : "Category tiles stay horizontal rows, two across."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Home title</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Home title">
+              ${HOME_INTROS.map((item) => `
+                <button type="button" class="${intro === item.id ? "is-on" : ""}" data-act="set-home-intro" data-value="${item.id}" aria-pressed="${intro === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${intro === "property" ? "Property dropdown sits above the weather." : intro === "greeting" ? "Shows Good morning, John above the weather." : "Wireframe default: city and weather only. No greeting."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>App look</span>
@@ -1032,7 +1077,7 @@ function previewSheet() {
                 <button type="button" class="${look === id ? "is-on" : ""}" data-act="set-app-look" data-value="${id}" aria-pressed="${look === id ? "true" : "false"}">${id.toUpperCase()}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${look === "v1" ? "Original companion: square buttons, tighter type, neon here-state." : look === "v3" ? "Chunky test: larger tap targets, bigger tiles, more page pad." : "Portal-aligned: pill buttons, 16px icons, quieter chrome."}</p>
+            <p class="preview-sheet__note">${look === "v1" ? "Original companion: square buttons, tighter type, neon here-state." : look === "v3" ? "Chunky test: larger tap targets, bigger tiles, more page pad." : "Current companion: pill buttons, 16px icons, quieter chrome."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>Home background</span>
@@ -1108,11 +1153,11 @@ function topnav({ back, mark = true } = {}) {
     </header>`;
 }
 
-function homeSwitcher() {
+function homeSwitcher({ large = false } = {}) {
   const home = currentHome();
   return `
-    <div class="prop-switch" data-stop>
-      <button type="button" class="chip" data-act="toggle-home-menu" aria-expanded="${state.homeMenu ? "true" : "false"}">
+    <div class="prop-switch${large ? " prop-switch--hello" : ""}" data-stop>
+      <button type="button" class="chip${large ? " chip--hello" : ""}" data-act="toggle-home-menu" aria-expanded="${state.homeMenu ? "true" : "false"}">
         ${icon("assets/icons/16/property.svg")} ${home.name}
         ${chevron(state.homeMenu ? "up" : "down")}
       </button>
@@ -1252,17 +1297,17 @@ function kindWell(kind, extra = "") {
   return `<span class="card-icon ${extra}">${icon(deviceIcon(kind))}</span>`;
 }
 
-function dashIcon(src) {
-  return `<span class="dash-tile__icon">${icon(src)}</span>`;
+function dashIcon(src, motion = "") {
+  return `<span class="dash-tile__icon${motion === "audio" ? " dash-tile__icon--live" : ""}${motion === "fan" ? " is-spin" : ""}">${icon(src)}${motion === "audio" ? eqBars() : ""}</span>`;
 }
 
-function dashTile({ title, meta, src, attrs = "", extra = "", ok = false, selected = false }) {
+function dashTile({ title, meta, src, attrs = "", extra = "", ok = false, selected = false, motion = "" }) {
   return `
     <button type="button" class="dash-tile ${extra}${selected ? " is-on" : ""}" ${attrs}>
-      ${src ? dashIcon(src) : ""}
+      ${src ? dashIcon(src, motion) : ""}
       <span class="dash-tile__text">
         <span class="dash-tile__title">${title}</span>
-        <span class="dash-tile__meta${ok ? " is-ok" : ""}">${meta}</span>
+        <span class="dash-tile__meta${ok ? " is-ok" : ""}${motion === "audio" ? " dash-tile__meta--scroll" : ""}">${motion === "audio" ? peekMarquee(meta) : meta}</span>
       </span>
     </button>`;
 }
@@ -1767,9 +1812,12 @@ function homeSummaryKpis(room) {
     },
     {
       title: playing ? "Now playing" : "Not playing",
-      meta: playing ? (state.spotifyLinked !== false ? "Spotify" : songBySource(playing.c.source).title) : "Off",
+      meta: playing
+        ? `${state.spotifyLinked !== false ? "Spotify" : "Jemm"} · ${songBySource(playing.c.source).title} — ${songBySource(playing.c.source).artist}`
+        : "Off",
       src: ICONS.audio,
       attrs: `data-act="home-peek" data-peek-kind="playing"`,
+      motion: playing ? "audio" : "",
     },
     {
       title: unlocked ? `${unlocked} open` : "All secured",
@@ -1795,55 +1843,71 @@ function homeSummaryKpis(room) {
       meta: fans.length ? (fansOn.length ? "On" : "Off") : "None here",
       src: ICONS.fan,
       attrs: `data-act="home-peek" data-peek-kind="fans"`,
+      motion: fansOn.length ? "fan" : "",
     },
   ];
 }
 
 function homeSummaryTiles(room, { cameras = true, viewAll = true } = {}) {
   const away = state.presence === "away";
-  const kpis = homeSummaryKpis(room);
+  const square = normalizeHomeTile(state.homeTile) === "square";
+  const items = [
+    {
+      title: "Home status",
+      meta: away ? "Away" : "Online",
+      src: ICONS.arc,
+      attrs: `data-act="home-peek" data-peek-kind="status"`,
+      ok: !away,
+    },
+    ...homeSummaryKpis(room),
+  ];
+  const tiles = items.map((k) => dashTile({
+    title: k.title,
+    meta: k.meta,
+    src: k.src,
+    extra: `dash-tile--kpi${square ? " dash-tile--vert dash-tile--square" : k.ok != null ? " dash-tile--status" : ""}${k.alert ? " is-alert" : ""}`,
+    attrs: k.attrs,
+    ok: k.ok,
+    motion: k.motion,
+  }));
   return `
     <section class="home-block">
       <div class="home-block__head">
         <h2 class="h2">Summary</h2>
-        ${viewAll ? `<button type="button" class="btn btn--link" data-act="home-page" data-page="2">View all devices</button>` : ""}
+        ${viewAll ? `<button type="button" class="btn btn--link" data-act="home-page" data-page="${homeDevicesPage()}">View all devices</button>` : ""}
       </div>
-      ${dashTile({
-        title: "Home status",
-        meta: away ? "Away" : "Online",
-        src: ICONS.arc,
-        extra: "dash-tile--status",
-        attrs: `data-act="home-peek" data-peek-kind="status"`,
-        ok: !away,
-      })}
-      <div class="dash-kpi">
-        ${kpis.map((k) => dashTile({
-          title: k.title,
-          meta: k.meta,
-          src: k.src,
-          extra: `dash-tile--kpi${k.alert ? " is-alert" : ""}`,
-          attrs: k.attrs,
-        })).join("")}
+      ${square ? "" : tiles[0]}
+      <div class="dash-kpi${square ? " is-square" : ""}">
+        ${(square ? tiles : tiles.slice(1)).join("")}
       </div>
     </section>
     ${cameras ? cameraRail(room) : ""}`;
 }
 
-function homeHero(room) {
+function homeHero(room, { title, chip = "dot" } = {}) {
   const home = currentHome();
   const away = !room;
+  const intro = title || normalizeHomeIntro(state.homeIntro);
+  const heading = intro === "property"
+    ? homeSwitcher({ large: true })
+    : intro === "greeting"
+      ? `<h1 class="home-hello__title">${dayGreeting()}</h1>`
+      : "";
+  const mark = chip === "pin"
+    ? `<svg class="here-chip__pin" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Z"/></svg>`
+    : `<span class="here-chip__dot" aria-hidden="true"></span>`;
   return `
     <div class="home-hello">
-      <h1 class="home-hello__title">${dayGreeting()}</h1>
+      ${heading}
       <div class="home-hello__meta">
         <span>${home.city || "Miami, Florida"}</span>
-        <span>${home.weather || room?.weather || "84 °F • Sunny"}</span>
+        <span>${home.weather || room?.weather || "84° F • Sunny"}</span>
       </div>
     </div>
     <div class="home-place">
       ${away
         ? `<span class="away-banner">You’re away</span>`
-        : `<span class="here-chip"><svg class="here-chip__pin" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Z"/></svg>Current location</span>`}
+        : `<span class="here-chip">${mark}Current location</span>`}
       <h2 class="home-place__title">${away ? "Whole home" : room.name}</h2>
     </div>`;
 }
@@ -1878,23 +1942,72 @@ function homeScenesBlock(room) {
     </section>`;
 }
 
-function homeScenesPane(room) {
-  return `${homeScenesBlock(room)}${cameraRail(room)}`;
+function homeFavorites(room) {
+  const cams = camerasIn(room).map((d) => ({
+    title: d.name,
+    meta: deviceDetail(d),
+    src: deviceIcon("camera"),
+    photo: d.photo,
+    attrs: `data-device="${d.id}"`,
+  }));
+  const doors = HOME_DOORS.map((door) => ({
+    title: `${door.label} door`,
+    meta: (state.doors || {})[door.id] === "unlocked" ? "Unlocked" : "Locked",
+    src: "assets/icons/16/home.svg",
+    attrs: `data-act="home-peek" data-peek-kind="security"`,
+  }));
+  const extras = (room ? room.devices : rooms().flatMap((r) => r.devices))
+    .filter((d) => d.kind !== "camera")
+    .slice(0, 4)
+    .map((d) => ({
+      title: d.name,
+      meta: deviceDetail(d),
+      src: deviceIcon(d.kind),
+      attrs: `data-device="${d.id}"`,
+    }));
+  const items = [...cams, ...doors, ...extras].slice(0, 6);
+  if (!items.length) return "";
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Favorites</h2>
+        <button type="button" class="icon-btn" data-act="home-fav-menu" aria-label="Favorites options">${icon("assets/icons/24/more.svg")}</button>
+      </div>
+      <div class="dash-favs">
+        ${items.map((item) => `
+          <button type="button" class="dash-tile dash-tile--vert dash-tile--fav${item.photo ? " dash-tile--cam" : ""}" ${item.attrs}>
+            ${item.photo ? `<img class="dash-tile__photo" src="${item.photo}" alt="" />` : ""}
+            ${dashIcon(item.src)}
+            <span class="dash-tile__text">
+              <span class="dash-tile__title">${item.title}</span>
+              <span class="dash-tile__meta">${item.meta}</span>
+            </span>
+          </button>`).join("")}
+      </div>
+    </section>`;
+}
+
+function homeFirstPane(room, extra = "") {
+  const intro = normalizeHomeIntro(state.homeIntro);
+  return `
+    ${homeHero(room, { title: intro === "property" ? "property" : intro === "greeting" ? "greeting" : "none", chip: "dot" })}
+    ${homeSummaryTiles(room, { cameras: false, viewAll: normalizeHomeLayout(state.homeLayout) !== "v2" })}
+    ${homeScenesBlock(room)}
+    ${homeFavorites(room)}
+    ${extra}`;
 }
 
 function homeSimple(room, extra = "") {
   return `
     <div class="home-simple">
-      ${homeHero(room)}
-      ${homeSummaryTiles(room, { cameras: false, viewAll: false })}
-      ${homeScenesBlock(room)}
-      ${cameraRail(room)}
-      ${extra}
+      ${homeFirstPane(room, extra)}
     </div>`;
 }
 
 function homeDevicesPane(room) {
+  const intro = normalizeHomeIntro(state.homeIntro);
   return `
+    ${homeHero(room, { title: intro === "property" ? "property" : "greeting", chip: "pin" })}
     <section class="home-block">
       <div class="home-block__head">
         <h2 class="h2">Devices</h2>
@@ -1907,8 +2020,7 @@ function homeDevicesPane(room) {
 function renderHomeHere(room) {
   if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(room);
   return homeDeck([
-    `${homeHero(room)}${homeSummaryTiles(room)}`,
-    homeScenesPane(room),
+    homeFirstPane(room),
     homeDevicesPane(room),
   ]);
 }
@@ -1917,8 +2029,7 @@ function renderHomeAway() {
   const peek = state.viewingRoom ? roomById(state.viewingRoom) : rooms()[0];
   if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(null, adminRequestCard());
   return homeDeck([
-    `${homeHero(null)}${homeSummaryTiles(null)}${adminRequestCard()}`,
-    homeScenesPane(peek),
+    homeFirstPane(null, adminRequestCard()),
     homeDevicesPane(peek),
   ]);
 }
@@ -2455,7 +2566,7 @@ function renderSettings() {
           <button type="button" class="${state.jemmPlace === "top" ? "is-on" : ""}" data-act="set-jemm-place" data-place="top">Top</button>
           <button type="button" class="${state.jemmPlace === "bottom" ? "is-on" : ""}" data-act="set-jemm-place" data-place="bottom">Bottom</button>
         </div>
-        <p class="muted">Same as the integrator portal: a slim Jemm row stays on screen, or hide it and use the logo in the nav.</p>
+        <p class="muted">A slim Jemm row stays on screen, or hide it and use the logo in the nav.</p>
       </section>
       <p class="muted">${state.followMe
         ? "When you walk into a room, Home shows that room’s summary, devices, and quick options."
@@ -3056,33 +3167,81 @@ function statusPeek() {
     <p class="muted">${home.name} stays private. Status and diagnostics stay on this network.</p>`;
 }
 
-function lightsPeek() {
-  const room = hereRoom();
-  const lights = devicesOfKind("light", room);
-  if (!lights.length) return `<p class="muted">No lights in ${room ? "this room" : "this home"}.</p>`;
-  const onCount = lights.filter((d) => ctl(d).on).length;
+function eqBars() {
+  return `<span class="peek-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
+}
+
+function peekMarquee(text) {
+  const line = `${text}   ·   `;
+  return `<span class="peek-marquee"><span class="peek-marquee__track">${line}${line}</span></span>`;
+}
+
+function peekKindInfo(kind) {
+  const map = {
+    status: { title: "Home status", icon: ICONS.arc },
+    people: { title: "People present" },
+    lights: { title: "Lights", icon: ICONS.light, deviceKind: "light", all: true },
+    playing: { title: "Now playing", icon: ICONS.audio, deviceKind: "audio", all: true },
+    security: { title: "Security", icon: "assets/icons/16/home.svg" },
+    climate: { title: "Climate", icon: ICONS.climate, deviceKind: "climate" },
+    shades: { title: "Shades", icon: ICONS.shade, deviceKind: "shade", all: true },
+    fans: { title: "Fans", icon: ICONS.fan, deviceKind: "fan", all: true },
+    cameras: { title: "Cameras", icon: ICONS.camera, deviceKind: "camera" },
+  };
+  return map[kind] || { title: summaryTitle(kind) };
+}
+
+function peekAllSeg(kind, list) {
+  if (!list.length) return "";
+  const info = peekKindInfo(kind);
+  const onCount = list.filter((d) => ctl(d).on).length;
   return `
-    <div class="peek-tools">
-      <p class="muted">${onCount ? `${onCount} ${onCount === 1 ? "light is" : "lights are"} on` : "Every light is off"} in ${room ? room.name.toLowerCase() : "this home"}. Turn them all at once, or tap one.</p>
-      <div class="seg" role="group" aria-label="All lights">
-        <button type="button" class="${onCount === lights.length ? "is-on" : ""}" data-act="lights-all" data-on="true">All on</button>
-        <button type="button" class="${onCount === 0 ? "is-on" : ""}" data-act="lights-all" data-on="false">All off</button>
-      </div>
-    </div>
-    <div class="card-stack">
-      ${lights.map((d) => {
-        const c = ctl(d);
-        return `
-          <div class="card-row ${c.on ? "is-on" : ""}" data-act="ctl-power-toggle" data-device="${d.id}">
-            ${kindWell("light", "card-icon--row")}
-            <span class="grow">
-              <span class="name">${d.name}</span>
-              <span class="meta">${d.room} · ${deviceDetail(d)}</span>
-            </span>
-            ${sheetPower(c, d.id)}
-          </div>`;
-      }).join("")}
+    <div class="seg peek-seg" role="group" aria-label="All ${info.title}">
+      <button type="button" class="${onCount === 0 ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="false">All Off</button>
+      <button type="button" class="${onCount === list.length ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="true">All On</button>
     </div>`;
+}
+
+function peekSlider(id, field, value, min, max, step = 1) {
+  return `<input type="range" class="peek-slider" min="${min}" max="${max}" step="${step}" value="${value}" data-ctl="${field}" data-device="${id}" aria-label="${field}" />`;
+}
+
+function peekControlCard(d) {
+  const c = ctl(d);
+  let control = "";
+  if (d.kind === "light") control = peekSlider(d.id, "intensity", c.on ? c.intensity : 0, 0, 100);
+  else if (d.kind === "audio") control = peekSlider(d.id, "volume", c.on ? c.volume : 0, 0, 100);
+  else if (d.kind === "shade") control = peekSlider(d.id, "pos", c.pos, 0, 100);
+  else if (d.kind === "climate") control = peekSlider(d.id, "temp", c.temp, 60, 86);
+  else if (d.kind === "fan") {
+    control = `
+      <div class="peek-speeds" role="group" aria-label="Speed">
+        ${["low", "med", "high"].map((s) => `
+          <button type="button" class="${c.on && c.speed === s ? "is-on" : ""}" data-act="ctl-speed" data-device="${d.id}" data-value="${s}">${s}</button>
+        `).join("")}
+      </div>`;
+  }
+  return `
+    <div class="peek-card ${c.on ? "is-on" : ""}">
+      <button type="button" class="peek-card__name" data-act="ctl-power-toggle" data-device="${d.id}">${d.name}</button>
+      <div class="peek-card__row">
+        <button type="button" class="peek-card__icon${c.on ? " is-on" : ""}${d.kind === "fan" && c.on ? " is-spin" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}">
+          ${icon(deviceIcon(d.kind))}
+        </button>
+        ${control}
+      </div>
+    </div>`;
+}
+
+function lightsPeek() {
+  return kindControlsPeek("light");
+}
+
+function kindControlsPeek(kind) {
+  const room = hereRoom();
+  const list = devicesOfKind(kind, room);
+  if (!list.length) return `<p class="muted">No ${kindLabel(kind).toLowerCase()} in ${room ? "this room" : "this home"}.</p>`;
+  return `<div class="peek-list">${list.map(peekControlCard).join("")}</div>`;
 }
 
 function playingPeek() {
@@ -3094,49 +3253,23 @@ function playingPeek() {
   const song = songBySource(c.source);
   const linked = state.spotifyLinked !== false;
   if (!list.length) return `<p class="muted">No speakers in ${room ? "this room" : "this home"}.</p>`;
+  const line = `${linked ? "Spotify" : "Jemm"} · ${song.title} — ${song.artist}`;
   return `
-    <div class="sheet-now ${c.on ? "is-live" : ""}">
-      <p class="kicker">${c.on ? (linked ? "Playing from Spotify" : "Playing on Jemm") : "Paused"}</p>
-      <strong>${c.on ? song.title : "Nothing queued"}</strong>
-      <span class="muted">${c.on ? `${song.artist} · ${primary.room} · ${c.volume}%` : "Pick a song to start"}</span>
+    <div class="peek-now ${c.on ? "is-live" : ""}">
+      ${c.on ? eqBars() : ""}
+      ${c.on ? peekMarquee(line) : `<span class="peek-now__idle">Nothing queued</span>`}
     </div>
-    <section class="stack-sm">
-      <h3 class="h2">Spotify</h3>
-      <p class="muted">${linked ? "Connected to John’s Spotify. Disconnect to stop using that library." : "Not connected. Reconnect to play from your Spotify library."}</p>
-      <button type="button" class="btn ${linked ? "btn--secondary" : "btn--primary"}" data-act="toggle-spotify">${linked ? "Disconnect" : "Reconnect"}</button>
-    </section>
-    <section class="stack-sm">
-      <h3 class="h2">Switch song</h3>
-      <div class="card-stack">
-        ${SONGS.map((s) => `
-          <button type="button" class="card-row ${song.id === s.id && c.on ? "is-on" : ""}" data-act="play-song" data-song="${s.id}">
-            ${kindWell("audio", "card-icon--row")}
-            <span class="grow">
-              <span class="name">${s.title}</span>
-              <span class="meta">${s.artist}</span>
-            </span>
-            <span class="muted">${song.id === s.id && c.on ? "Playing" : "Play"}</span>
-          </button>`).join("")}
-      </div>
-    </section>
-    ${list.length > 1 ? `
-      <section class="stack-sm">
-        <h3 class="h2">Speakers</h3>
-        <div class="card-stack">
-          ${list.map((d) => {
-            const dc = ctl(d);
-            return `
-              <button type="button" class="card-row ${dc.on ? "is-on" : ""}" data-device="${d.id}" data-keep-peek="true">
-                ${kindWell("audio", "card-icon--row")}
-                <span class="grow">
-                  <span class="name">${d.name}</span>
-                  <span class="meta">${d.room} · ${dc.on ? `${dc.volume}%` : "Off"}</span>
-                </span>
-                ${chevron("right")}
-              </button>`;
-          }).join("")}
-        </div>
-      </section>` : ""}`;
+    <div class="peek-list">${list.map(peekControlCard).join("")}</div>
+    <div class="peek-songs">
+      ${SONGS.map((s) => `
+        <button type="button" class="peek-song${song.id === s.id && c.on ? " is-on" : ""}" data-act="play-song" data-song="${s.id}">
+          ${eqBars()}
+          <span class="peek-song__text">
+            <span class="peek-song__title">${s.title}</span>
+            <span class="peek-song__meta">${s.artist}${song.id === s.id && c.on ? " · Playing" : ""}</span>
+          </span>
+        </button>`).join("")}
+    </div>`;
 }
 
 function securityPlan() {
@@ -3162,6 +3295,9 @@ function kindListPeek(kind) {
   const room = hereRoom();
   const list = devicesOfKind(kind, room);
   if (!list.length) return `<p class="muted">No ${kindLabel(kind).toLowerCase()} in ${room ? "this room" : "this home"}.</p>`;
+  if (["light", "audio", "fan", "shade", "climate"].includes(kind)) {
+    return `<div class="peek-list">${list.map(peekControlCard).join("")}</div>`;
+  }
   return `
     <div class="card-stack">
       ${list.map((d) => {
@@ -3199,7 +3335,10 @@ function summaryTitle(kind) {
 function homePeekOverlay() {
   if (openMode() === "page" || !state.homePeek) return "";
   const kind = state.homePeek;
+  const info = peekKindInfo(kind);
   const side = openMode() === "side";
+  const room = hereRoom();
+  const list = info.deviceKind ? devicesOfKind(info.deviceKind, room) : [];
   return `
     <div class="overlay overlay--peek${side ? " is-side" : ""}" data-act="close-peek">
       <aside class="peek-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="peek-title">
@@ -3207,17 +3346,25 @@ function homePeekOverlay() {
           <button type="button" class="sheet-grab" data-act="close-peek" aria-label="Dismiss sheet">
             <span class="handle"></span>
           </button>`}
-        <header class="hero-row">
-          <h2 class="h2" id="peek-title">${summaryTitle(kind)}</h2>
-          <button type="button" class="icon-btn" data-act="close-peek" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
+        <p class="peek-room">${room ? room.name : "Whole home"}</p>
+        <header class="peek-head">
+          <div class="peek-head__title">
+            ${info.icon ? `<span class="peek-head__icon">${icon(info.icon)}</span>` : ""}
+            <h2 class="peek-head__name" id="peek-title">${info.title}</h2>
+          </div>
+          ${info.all ? peekAllSeg(kind, list) : ""}
         </header>
-        ${summaryBody(kind)}
+        <div class="peek-body">
+          ${summaryBody(kind)}
+        </div>
       </aside>
     </div>`;
 }
 
 function renderSummary() {
   const kind = state.viewingSummary || "status";
+  const info = peekKindInfo(kind);
+  const list = info.deviceKind ? devicesOfKind(info.deviceKind, hereRoom()) : [];
   const back = state.summaryBack && APP_SCREENS.has(state.summaryBack) && state.summaryBack !== "summary" ? state.summaryBack : "home";
   return `
     ${topnav({ back })}
@@ -3225,8 +3372,8 @@ function renderSummary() {
     <div class="stage stack-lg">
       <div class="home-head">
         <p class="kicker">Summary</p>
-        <h1 class="h1">${summaryTitle(kind)}</h1>
-        <p class="muted">This group’s current devices. Open one to control it.</p>
+        <h1 class="h1">${info.title}</h1>
+        ${info.all ? peekAllSeg(kind, list) : `<p class="muted">This group’s current devices. Open one to control it.</p>`}
       </div>
       ${summaryBody(kind)}
     </div>
@@ -3460,6 +3607,9 @@ document.addEventListener("click", (e) => {
   if (act === "set-card-tone") patch({ cardTone: normalizeCardTone(t.dataset.value), previewMenu: true });
   if (act === "set-preview-dock") patch({ previewDock: normalizePreviewDock(t.dataset.value), previewMenu: true });
   if (act === "set-home-layout") patch({ homeLayout: normalizeHomeLayout(t.dataset.value), homePage: 0, previewMenu: true });
+  if (act === "set-home-tile") patch({ homeTile: normalizeHomeTile(t.dataset.value), previewMenu: true });
+  if (act === "set-home-intro") patch({ homeIntro: normalizeHomeIntro(t.dataset.value), previewMenu: true });
+  if (act === "home-fav-menu") flash("Favorites.");
   if (act === "home-page") patch({ homePage: normalizeHomePage(t.dataset.page) });
   if (act === "set-device-open") {
     const deviceOpen = normalizeDeviceOpen(t.dataset.value);
@@ -3499,7 +3649,7 @@ document.addEventListener("click", (e) => {
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
   if (act === "set-kind") {
     const extra = { deviceKind: t.dataset.kind };
-    if (state.screen === "home" && t.dataset.kind === "camera") extra.homePage = 2;
+    if (state.screen === "home" && t.dataset.kind === "camera") extra.homePage = homeDevicesPage();
     patch(extra);
   }
   if (act === "close-sheet") {
@@ -3519,10 +3669,15 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (act === "close-peek") patch({ homePeek: null, viewingSummary: state.screen === "summary" ? state.viewingSummary : null });
-  if (act === "lights-all") {
+  if (act === "lights-all" || act === "kind-all") {
     const on = t.dataset.on === "true";
-    const ids = devicesOfKind("light", hereRoom()).map((d) => d.id);
-    if (ids.length) setCtlMany(ids, { on });
+    const kind = t.dataset.kind || "light";
+    const ids = devicesOfKind(kind, hereRoom()).map((d) => d.id);
+    const extra = {};
+    if (kind === "audio" && on) extra.source = currentSong().title;
+    if (kind === "fan" && on) extra.speed = "low";
+    if (kind === "shade") extra.pos = on ? 100 : 0;
+    if (ids.length) setCtlMany(ids, { on, ...extra });
   }
   if (act === "ctl-power-toggle") {
     const id = t.dataset.device;
@@ -3603,16 +3758,23 @@ document.addEventListener("click", (e) => {
     const id = t.dataset.device || state.sheetDevice;
     if (id) setCtl(id, { source: t.dataset.value, on: t.dataset.value !== "Off" });
   }
-  if (act === "ctl-mode") setCtl(state.sheetDevice, { mode: t.dataset.value, on: t.dataset.value !== "off" });
-  if (act === "ctl-speed") setCtl(state.sheetDevice, { speed: t.dataset.value, on: true });
+  if (act === "ctl-mode") {
+    const id = t.dataset.device || state.sheetDevice;
+    if (id) setCtl(id, { mode: t.dataset.value, on: t.dataset.value !== "off" });
+  }
+  if (act === "ctl-speed") {
+    const id = t.dataset.device || state.sheetDevice;
+    if (id) setCtl(id, { speed: t.dataset.value, on: true });
+  }
   if (act === "ctl-num") {
     const field = t.dataset.ctlField;
     const value = Number(t.dataset.value);
+    const id = t.dataset.device || state.sheetDevice;
     const extra = {};
     if (field === "intensity" || field === "volume" || field === "pos" || field === "temp") extra.on = true;
     if (field === "volume" && value === 0) extra.on = false;
     if (field === "intensity" && value === 0) extra.on = false;
-    setCtl(state.sheetDevice, { [field]: value, ...extra });
+    if (id) setCtl(id, { [field]: value, ...extra });
   }
   if (act === "toggle-jemm-menu") patch({ jemmMenu: !state.jemmMenu, homeMenu: false });
   if (act === "set-jemm-place") patch({ jemmPlace: t.dataset.place, jemmVisible: true, jemmMenu: false });
@@ -3639,9 +3801,9 @@ document.addEventListener("change", (e) => {
 
 document.addEventListener("input", (e) => {
   const field = e.target.dataset.ctl;
-  if (!field || !state.sheetDevice) return;
+  const id = e.target.dataset.device || state.sheetDevice;
+  if (!field || !id) return;
   const val = Number(e.target.value);
-  const id = state.sheetDevice;
   const d = findDevice(id);
   if (!d) return;
   const extra = {};
