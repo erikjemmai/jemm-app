@@ -537,7 +537,7 @@ function blank() {
     walkAuto: false,
     viewAs: "admin",
     sheetDevice: null,
-    sheetSize: "full",
+    sheetSize: "half",
     sheetTab: "controls",
     sheet: null,
     toast: "",
@@ -563,7 +563,7 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, sideScene: null, homePeek: null, peekDeviceId: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true, wakeWordSheet: false };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "half", sheetTab: "controls", sheetScene: null, sideScene: null, homePeek: null, peekDeviceId: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true, wakeWordSheet: false };
     next.appLook = normalizeLook(next.appLook);
     next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
     next.previewDock = normalizePreviewDock(next.previewDock);
@@ -812,7 +812,7 @@ function go(screen, extra = {}) {
     screen,
     sheet: null,
     sheetDevice: null,
-    sheetSize: "full",
+    sheetSize: "half",
     sheetTab: "controls",
     sheetScene: null,
     homePeek: null,
@@ -851,7 +851,7 @@ function openDevice(id, extra = {}) {
     sheetDevice: id,
     viewingDevice: id,
     deviceBack: from,
-    sheetSize: "full",
+    sheetSize: "half",
     sheetTab: extra.sheetTab || "controls",
     sheetScene: null,
     homeMenu: false,
@@ -5080,7 +5080,7 @@ document.addEventListener("click", (e) => {
   }
   if (act === "close-sheet") {
     if (state.screen === "device") go(state.deviceBack || "home");
-    else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
+    else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "half", sheetTab: "controls" });
   }
   if (act === "close-scene") patch({ sheetScene: null, sideScene: null });
   if (act === "go-scene" || act === "scene-more") {
@@ -5123,7 +5123,7 @@ document.addEventListener("click", (e) => {
   }
   if (act === "edit-scene-action") {
     const deviceId = t.dataset.device;
-    if (deviceId) patch({ sheetDevice: deviceId, sheetSize: "full", sheetTab: "controls", sheetScene: null, sideScene: null });
+    if (deviceId) patch({ sheetDevice: deviceId, sheetSize: "half", sheetTab: "controls", sheetScene: null, sideScene: null });
   }
   if (act === "edit-scene-name") {
     const key = t.dataset.key;
@@ -5450,7 +5450,11 @@ function sheetPanel() {
 }
 
 function sheetHeights() {
-  return { full: Math.min(window.innerHeight * 0.92, 900) };
+  const vh = window.innerHeight;
+  return {
+    half: Math.round(vh * 0.50),
+    full: Math.min(Math.round(vh * 0.92), 900),
+  };
 }
 
 function clearSheetDrag(panel) {
@@ -5461,6 +5465,18 @@ function clearSheetDrag(panel) {
   }
   sheetDrag = null;
   setTimeout(() => { sheetDragMoved = false; }, 80);
+}
+
+function snapSheetTo(size) {
+  const panel = sheetPanel();
+  if (!panel) return;
+  const { half, full } = sheetHeights();
+  panel.classList.remove("is-dragging");
+  panel.style.transform = "";
+  panel.style.transition = "height 0.32s cubic-bezier(0.32,0.72,0,1)";
+  panel.style.height = (size === "full" ? full : half) + "px";
+  setTimeout(() => { if (panel) panel.style.transition = ""; }, 340);
+  patch({ sheetSize: size });
 }
 
 // ── Light vertical slider interaction ────────────────────────
@@ -5498,14 +5514,16 @@ document.addEventListener("pointerdown", (e) => {
   const panel = sheetPanel();
   if (!panel) return;
   sheetDragMoved = false;
+  const { half, full } = sheetHeights();
+  const currentH = panel.getBoundingClientRect().height || (state.sheetSize === "full" ? full : half);
   sheetDrag = {
     y: e.clientY,
-    startH: panel.getBoundingClientRect().height,
-    full: state.sheetSize === "full",
+    startH: currentH,
     lastY: e.clientY,
     lastT: performance.now(),
     v: 0,
   };
+  panel.style.height = currentH + "px";
   panel.classList.add("is-dragging");
   try { grab.setPointerCapture(e.pointerId); } catch {}
 });
@@ -5522,24 +5540,40 @@ document.addEventListener("pointermove", (e) => {
   const dy = e.clientY - sheetDrag.y;
   if (Math.abs(dy) > 8) sheetDragMoved = true;
   const { full } = sheetHeights();
-  if (dy < 0) {
-    panel.style.transform = "";
-    panel.style.height = `${full + Math.min(-dy, 24) * 0.12}px`;
-  } else {
-    panel.style.height = `${full}px`;
-    panel.style.transform = `translateY(${dy}px)`;
-  }
+  const newH = sheetDrag.startH - dy;
+  const cap = newH > full ? full + (newH - full) * 0.12 : Math.max(newH, 40);
+  panel.style.height = `${cap}px`;
+  panel.style.transform = "";
 });
 
 document.addEventListener("pointerup", (e) => {
   if (!sheetDrag) return;
   const dy = e.clientY - sheetDrag.y;
-  const flickDown = sheetDrag.v > 0.55;
+  const flickDown = sheetDrag.v > 0.45;
+  const flickUp = sheetDrag.v < -0.45;
   const panel = sheetPanel();
-  clearSheetDrag(panel);
-  if (dy > 80 || (dy > 28 && flickDown)) {
-    patch({ sheetDevice: null, sheetSize: "full", sheetTab: "controls" });
+  const { half, full } = sheetHeights();
+  const currentSize = state.sheetSize;
+  const finalH = panel ? panel.getBoundingClientRect().height : 0;
+  sheetDrag = null;
+  setTimeout(() => { sheetDragMoved = false; }, 80);
+
+  // Dismiss: flick down hard or dragged down a lot
+  if (flickDown || dy > finalH * 0.45 || dy > 120) {
+    if (panel) { panel.classList.remove("is-dragging"); panel.style.transform = ""; panel.style.height = ""; }
+    patch({ sheetDevice: null, sheetSize: "half", sheetTab: "controls" });
+    return;
   }
+  // Snap up to full from half
+  if (currentSize !== "full" && (flickUp || finalH > (half + full) / 2)) {
+    snapSheetTo("full"); return;
+  }
+  // Snap down from full to half
+  if (currentSize === "full" && dy > 55) {
+    snapSheetTo("half"); return;
+  }
+  // Snap back to current
+  snapSheetTo(currentSize);
 });
 document.addEventListener("pointercancel", () => {
   clearSheetDrag(sheetPanel());
@@ -5584,7 +5618,7 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (state.sheetDevice) {
-    patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
+    patch({ sheetDevice: null, viewingDevice: null, sheetSize: "half", sheetTab: "controls" });
     return;
   }
   if (state.screen === "device") {
