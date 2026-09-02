@@ -563,7 +563,7 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "half", sheetTab: "controls", sheetScene: null, sideScene: null, homePeek: null, peekDeviceId: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true, wakeWordSheet: false };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "half", sheetTab: "controls", sheetScene: null, sideScene: null, homePeek: null, peekDeviceId: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, wakeWordSheet: false };
     next.appLook = normalizeLook(next.appLook);
     next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
     next.previewDock = normalizePreviewDock(next.previewDock);
@@ -615,7 +615,7 @@ const LEARN_KEYS = new Set([
   "doors", "adminRequest", "theme", "followMe", "faceId", "homeId", "name",
   "email", "avatar", "password",
   "surfaceStyle", "spacing", "homeBackground", "bottomNavStyle", "deviceDetailStyle", "sceneDetailStyle",
-  "jemmMuted", "wakeWord",
+  "jemmMuted", "wakeWord", "nightCardDismissed",
 ]);
 
 function shouldLearn(next) {
