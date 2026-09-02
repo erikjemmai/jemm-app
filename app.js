@@ -5,6 +5,39 @@ const DEVICE_OPENS = [
   { id: "page", label: "New page" },
   { id: "side", label: "Right sheet" },
 ];
+const PREVIEW_DOCKS = [
+  { id: "sheet", label: "Bottom" },
+  { id: "side", label: "Right" },
+];
+const HOME_BACKGROUNDS = [
+  { id: "fill", label: "Fill" },
+  { id: "photo", label: "Photo" },
+];
+const CARD_TONES = [
+  { id: "steel", label: "Dark Steel" },
+  { id: "charcoal", label: "Charcoal Ink" },
+  { id: "black", label: "Black" },
+];
+const HOME_PANES = [
+  { id: "status", label: "Status" },
+  { id: "scenes", label: "Scenes" },
+  { id: "devices", label: "Devices" },
+];
+const HOME_LAYOUTS = [
+  { id: "v1", label: "V1" },
+  { id: "v2", label: "V2" },
+];
+const SUMMARY_TITLES = {
+  status: "Home status",
+  people: "People present",
+  lights: "Lights",
+  playing: "Now playing",
+  security: "Security",
+  climate: "Climate",
+  shades: "Shades",
+  fans: "Fans",
+  cameras: "Cameras",
+};
 const AVATARS = [
   { id: "1", src: "assets/avatars/1.png", label: "Bright" },
   { id: "2", src: "assets/avatars/2.png", label: "Warm" },
@@ -35,12 +68,13 @@ const ROOMS = [
       { id: "lr-audio", name: "Audio", kind: "audio", detail: "Jazz · 18%" },
       { id: "lr-shade", name: "Shades", kind: "shade", detail: "Open" },
       { id: "lr-mic", name: "Jemm Mic", kind: "mic", detail: "Listening" },
+      { id: "lr-front", name: "Front door", kind: "camera", detail: "Live" },
+      { id: "lr-drive", name: "Driveway", kind: "camera", detail: "Live" },
     ],
     quick: [
-      { id: "evening", label: "Evening" },
-      { id: "lights-off", label: "Lights off" },
-      { id: "play", label: "Play" },
-      { id: "climate", label: "Climate" },
+      { id: "sleep", label: "Good night" },
+      { id: "movie", label: "Movie night" },
+      { id: "evening", label: "Relax" },
     ],
   },
   {
@@ -87,7 +121,7 @@ const ROOMS = [
       { id: "yd-spot", name: "Spotlights", kind: "light", intensity: 55, kelvin: 3000 },
       { id: "yd-string", name: "String lights", kind: "light", on: false, intensity: 35, kelvin: 2200 },
       { id: "yd-audio", name: "Audio", kind: "audio", detail: "Patio mix" },
-      { id: "yd-cam", name: "Camera", kind: "camera", detail: "Armed" },
+      { id: "yd-cam", name: "Patio", kind: "camera", detail: "Armed" },
       { id: "yd-mic", name: "Jemm Mic", kind: "mic", detail: "Outdoor" },
     ],
     quick: [
@@ -253,6 +287,8 @@ const HOMES = [
   {
     id: "john",
     name: "John Residence",
+    city: "Miami, Florida",
+    weather: "84 °F • Sunny",
     plan: "assets/rooms/floorplan-1.png",
     rooms: ROOMS,
     spots: {
@@ -265,6 +301,8 @@ const HOMES = [
   {
     id: "lake",
     name: "Lake House",
+    city: "Tahoe City, CA",
+    weather: "72 °F • Clear",
     plan: "assets/rooms/floorplan-2.png",
     rooms: LAKE_ROOMS,
     spots: {
@@ -366,6 +404,12 @@ const HOME_DOORS = [
   { id: "patio", label: "Patio", t: 78, l: 38, w: 22, h: 12 },
   { id: "garage", label: "Garage", t: 36, l: 6, w: 12, h: 16 },
 ];
+const SONGS = [
+  { id: "jazz", title: "Evening Jazz", artist: "Jemm Radio" },
+  { id: "patio", title: "Patio mix", artist: "Outdoor" },
+  { id: "radio", title: "Morning radio", artist: "Local" },
+  { id: "tv", title: "Living room TV", artist: "HDMI" },
+];
 
 const ICONS = {
   light: "assets/devices/icon-light.svg",
@@ -380,7 +424,7 @@ const ICONS = {
 const KIND_LABEL = {
   light: "Lights",
   climate: "Climate",
-  audio: "Audio",
+  audio: "Sound",
   shade: "Shades",
   fan: "Fans",
   camera: "Cameras",
@@ -388,7 +432,7 @@ const KIND_LABEL = {
 };
 const KIND_ORDER = ["light", "climate", "audio", "shade", "fan", "camera", "mic"];
 
-const APP_SCREENS = new Set(["home", "rooms", "profiles", "more", "devices", "insights", "settings", "jemm", "help", "notify", "profile", "room", "scene", "history", "device"]);
+const APP_SCREENS = new Set(["home", "rooms", "profiles", "more", "devices", "insights", "settings", "jemm", "help", "notify", "profile", "room", "scene", "history", "device", "camera", "summary"]);
 const ONBOARD = new Set(["splash", "welcome", "login", "pair", "found", "wifi", "connecting", "avatar", "account", "done"]);
 
 function blank() {
@@ -423,12 +467,23 @@ function blank() {
     adminRequest: null,
     jemmMood: "ok",
     homePeek: null,
-    deviceView: "grid",
+    spotifyLinked: true,
+    playingSong: "jazz",
+    deviceView: "list",
     appLook: "v2",
     deviceOpen: "sheet",
     previewMenu: false,
+    previewDock: "sheet",
+    homeBg: "fill",
+    cardTone: "steel",
+    homeLayout: "v1",
+    homePage: 0,
     viewingDevice: null,
     deviceBack: "home",
+    viewingSummary: null,
+    summaryBack: "home",
+    sceneBack: "room",
+    camReply: "",
     deviceKind: "all",
     roomsView: "grid",
     peopleView: "list",
@@ -448,6 +503,7 @@ function blank() {
     homeMenu: false,
     helpSheet: false,
     helpChat: false,
+    accountSheet: false,
     sheetScene: null,
   };
 }
@@ -456,9 +512,14 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, previewMenu: false };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "" };
     next.appLook = normalizeLook(next.appLook);
     next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
+    next.previewDock = normalizePreviewDock(next.previewDock);
+    next.homeBg = normalizeHomeBg(next.homeBg);
+    next.cardTone = normalizeCardTone(next.cardTone);
+    next.homeLayout = normalizeHomeLayout(next.homeLayout);
+    next.homePage = normalizeHomePage(next.homePage, next.homeLayout);
     if (saved.roomsView === "list" && saved.peopleView == null) next.roomsView = "grid";
     return next;
   } catch {
@@ -509,7 +570,7 @@ function startLearnPulse() {
 }
 
 function persist() {
-  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, previewMenu, ...rest } = state;
+  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, accountSheet, previewMenu, camReply, ...rest } = state;
   localStorage.setItem(KEY, JSON.stringify(rest));
 }
 
@@ -521,9 +582,40 @@ function normalizeDeviceOpen(value) {
   return value === "page" || value === "side" ? value : "sheet";
 }
 
+function normalizePreviewDock(value) {
+  return value === "side" ? "side" : "sheet";
+}
+
+function normalizeHomeBg(value) {
+  return value === "photo" ? "photo" : "fill";
+}
+
+function normalizeCardTone(value) {
+  return value === "charcoal" || value === "black" ? value : "steel";
+}
+
+function normalizeHomeLayout(value) {
+  return value === "v2" ? "v2" : "v1";
+}
+
+function homePaneCount(layout) {
+  return normalizeHomeLayout(layout ?? state?.homeLayout) === "v2" ? 1 : HOME_PANES.length;
+}
+
+function normalizeHomePage(value, layout) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(homePaneCount(layout) - 1, Math.round(n)));
+}
+
+function homePhoto() {
+  return (hereRoom() || rooms()[0] || {}).photo || "";
+}
+
 function applyTheme() {
   document.documentElement.dataset.theme = state.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.look = normalizeLook(state.appLook);
+  document.documentElement.dataset.cardTone = normalizeCardTone(state.cardTone);
 }
 
 function patch(next, redraw = true) {
@@ -549,17 +641,26 @@ function go(screen, extra = {}) {
     homeMenu: false,
     helpSheet: false,
     helpChat: false,
+    accountSheet: false,
     previewMenu: false,
-    viewingDevice: screen === "device" ? extra.viewingDevice || state.viewingDevice : null,
+    viewingDevice: (screen === "device" || screen === "camera") ? extra.viewingDevice || state.viewingDevice : null,
     ...extra,
   });
 }
 
+function openMode() {
+  return normalizeDeviceOpen(state.deviceOpen);
+}
+
 function openDevice(id, extra = {}) {
-  if (!id || !findDevice(id)) return;
-  const mode = normalizeDeviceOpen(state.deviceOpen);
-  const from = state.screen !== "device" && APP_SCREENS.has(state.screen) ? state.screen : (state.deviceBack || "home");
-  if (mode === "page") {
+  const found = findDevice(id);
+  if (!id || !found) return;
+  const from = state.screen !== "device" && state.screen !== "camera" && APP_SCREENS.has(state.screen) ? state.screen : (state.deviceBack || "home");
+  if (found.kind === "camera") {
+    go("camera", { viewingDevice: id, deviceBack: from, sheetDevice: null, camReply: "" });
+    return;
+  }
+  if (openMode() === "page") {
     go("device", { viewingDevice: id, deviceBack: from, sheetTab: extra.sheetTab || "controls" });
     return;
   }
@@ -574,6 +675,26 @@ function openDevice(id, extra = {}) {
     jemmMenu: false,
     previewMenu: false,
     homePeek: extra.keepPeek ? state.homePeek : null,
+  });
+}
+
+function openSummary(kind) {
+  if (!kind) return;
+  const from = state.screen !== "summary" && APP_SCREENS.has(state.screen) ? state.screen : (state.summaryBack || "home");
+  if (openMode() === "page") {
+    go("summary", { viewingSummary: kind, summaryBack: from, homePeek: null });
+    return;
+  }
+  patch({
+    homePeek: kind,
+    viewingSummary: kind,
+    summaryBack: from,
+    sheetDevice: null,
+    accountSheet: false,
+    helpSheet: false,
+    previewMenu: false,
+    homeMenu: false,
+    jemmMenu: false,
   });
 }
 
@@ -601,7 +722,7 @@ function defaultCtl(d) {
       kelvin: d.kelvin ?? 2700,
     };
   }
-  if (d.kind === "audio") return { on: true, volume: 18, source: "Jazz" };
+  if (d.kind === "audio") return { on: true, volume: 18, source: currentSong().title };
   if (d.kind === "climate") return { on: true, temp: 72, mode: "auto" };
   if (d.kind === "shade") return { on: true, pos: 80 };
   if (d.kind === "fan") return { on: true, speed: "low" };
@@ -616,6 +737,30 @@ function ctl(d) {
 
 function setCtl(id, patchCtl) {
   patch({ ctl: { ...state.ctl, [id]: { ...(state.ctl[id] || {}), ...patchCtl } } });
+}
+
+function setCtlMany(ids, patchCtl) {
+  const next = { ...state.ctl };
+  ids.forEach((id) => {
+    next[id] = { ...(next[id] || {}), ...patchCtl };
+  });
+  patch({ ctl: next });
+}
+
+function currentSong() {
+  return SONGS.find((s) => s.id === state.playingSong) || SONGS[0];
+}
+
+function songBySource(source) {
+  const key = String(source || "").toLowerCase();
+  return SONGS.find((s) => s.id === key || s.title.toLowerCase() === key) || currentSong();
+}
+
+function devicesOfKind(kind, room) {
+  const list = room
+    ? room.devices.filter((d) => d.kind === kind).map((d) => ({ ...d, room: room.name, roomId: room.id }))
+    : rooms().flatMap((r) => r.devices.filter((d) => d.kind === kind).map((d) => ({ ...d, room: r.name, roomId: r.id })));
+  return list;
 }
 
 function findDevice(id) {
@@ -680,13 +825,37 @@ function scenePatchFor(sceneId, d) {
   return null;
 }
 
+function sceneLine(d, patch) {
+  if (!patch) return `Unchanged · ${deviceDetail(d)}`;
+  if (patch.detail) return patch.detail;
+  if (patch.on === false) return "Off";
+  if (d.kind === "light") return `Intensity ${patch.intensity ?? 0}% · ${patch.on === false ? "Off" : "On"}`;
+  if (d.kind === "audio") return `${patch.source || "Audio"} · ${patch.volume ?? 0}%`;
+  if (d.kind === "climate") return `${patch.temp}° · ${patch.mode || "auto"}`;
+  if (d.kind === "shade") return patch.pos >= 90 ? "Open" : patch.pos <= 10 ? "Closed" : `${patch.pos}%`;
+  if (d.kind === "fan") return patch.on === false ? "Off" : (patch.speed || "On");
+  if (d.kind === "camera") return patch.armed ? "Armed · Live" : "Idle";
+  return "On";
+}
+
 function sceneSets(room, sceneId) {
-  return room.devices
-    .map((d) => {
-      const p = scenePatchFor(sceneId, d);
-      return p ? { name: d.name, detail: p.detail } : null;
-    })
-    .filter(Boolean);
+  return room.devices.map((d) => {
+    const p = scenePatchFor(sceneId, d);
+    return {
+      id: d.id,
+      name: d.name,
+      kind: d.kind,
+      set: Boolean(p),
+      on: p ? p.on !== false : ctl(d).on,
+      detail: sceneLine(d, p),
+    };
+  });
+}
+
+function sceneSetGroups(rows) {
+  return KIND_ORDER
+    .map((kind) => ({ kind, items: rows.filter((r) => r.kind === kind) }))
+    .filter((g) => g.items.length);
 }
 
 function findScene(roomId, sceneId) {
@@ -718,13 +887,13 @@ function runScene(roomId, sceneId, { keepSheet = false } = {}) {
 function deviceDetail(d) {
   const c = ctl(d);
   if (!c.on) return "Off";
-  if (d.kind === "light") return `${c.intensity}% · ${c.kelvin}K`;
-  if (d.kind === "audio") return `${c.source} · ${c.volume}%`;
+  if (d.kind === "light") return `Intensity ${c.intensity}% • On`;
+  if (d.kind === "audio") return `${c.source || currentSong().title} · ${c.volume}%`;
   if (d.kind === "climate") return `${c.temp}° · ${c.mode}`;
   if (d.kind === "shade") return c.pos >= 90 ? "Open" : c.pos <= 10 ? "Closed" : `${c.pos}%`;
   if (d.kind === "fan") return c.speed;
-  if (d.kind === "camera") return c.armed ? "Armed" : "Idle";
-  if (d.kind === "mic") return `Vol ${c.volume}%`;
+  if (d.kind === "camera") return c.armed ? "Live" : "Idle";
+  if (d.kind === "mic") return `Volume ${c.volume}% • On`;
   return d.detail;
 }
 
@@ -830,15 +999,32 @@ function previewSheet() {
   if (!state.previewMenu) return "";
   const look = normalizeLook(state.appLook);
   const open = normalizeDeviceOpen(state.deviceOpen);
+  const dock = normalizePreviewDock(state.previewDock);
+  const bg = normalizeHomeBg(state.homeBg);
+  const tone = normalizeCardTone(state.cardTone);
+  const home = normalizeHomeLayout(state.homeLayout);
   return `
-    <div class="preview-overlay" data-act="close-preview">
-      <aside class="preview-sheet" data-stop role="dialog" aria-labelledby="preview-sheet-title">
+    <div class="sheet sheet--preview ${dock === "side" ? "is-side" : "is-sheet"}" data-act="close-preview">
+      <aside class="sheet__panel preview-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="preview-sheet-title">
+        ${dock === "sheet" ? `
+          <button type="button" class="sheet-grab" data-act="close-preview" aria-label="Dismiss sheet">
+            <span class="handle"></span>
+          </button>` : ""}
         <header class="preview-sheet__head">
-          <h2 id="preview-sheet-title">Config</h2>
-          <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close config">${icon("assets/icons/24/close.svg")}</button>
+          <h2 id="preview-sheet-title">Layout test</h2>
+          <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close layout test">${icon("assets/icons/24/close.svg")}</button>
         </header>
         <div class="preview-sheet__body">
-          <p class="preview-sheet__hint">Changes apply immediately so you can A/B/C the consumer app. Devices stay tappable in every version.</p>
+          <p class="preview-sheet__hint">Temporary. Switch Home and how a device or summary opens. V1 keeps the swipe pages you have now.</p>
+          <div class="preview-sheet__block">
+            <span>Home</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Home layout">
+              ${HOME_LAYOUTS.map((item) => `
+                <button type="button" class="${home === item.id ? "is-on" : ""}" data-act="set-home-layout" data-value="${item.id}" aria-pressed="${home === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${home === "v2" ? "One Home page: dark steel status tiles, then scenes and cameras. No device list underneath. Tap a category to see those devices." : "Current Home: swipe Status, Scenes, and Devices. Cameras sit on Status and Scenes."}</p>
+          </div>
           <div class="preview-sheet__block">
             <span>App look</span>
             <div class="preview-sheet__seg" role="group" aria-label="App look">
@@ -846,33 +1032,78 @@ function previewSheet() {
                 <button type="button" class="${look === id ? "is-on" : ""}" data-act="set-app-look" data-value="${id}" aria-pressed="${look === id ? "true" : "false"}">${id.toUpperCase()}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${look === "v1" ? "Original companion: square buttons, tighter type, neon here-state. Devices open from the card." : look === "v3" ? "Chunky test: larger tap targets, bigger tiles, more page pad." : "Portal-aligned: pill buttons, 16px icons, quieter Jemm chrome."}</p>
+            <p class="preview-sheet__note">${look === "v1" ? "Original companion: square buttons, tighter type, neon here-state." : look === "v3" ? "Chunky test: larger tap targets, bigger tiles, more page pad." : "Portal-aligned: pill buttons, 16px icons, quieter chrome."}</p>
           </div>
           <div class="preview-sheet__block">
-            <span>Device details</span>
-            <div class="preview-sheet__seg preview-sheet__seg--wrap" role="group" aria-label="How a device opens">
+            <span>Home background</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Home background">
+              ${HOME_BACKGROUNDS.map((item) => `
+                <button type="button" class="${bg === item.id ? "is-on" : ""}" data-act="set-home-bg" data-value="${item.id}" aria-pressed="${bg === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${bg === "photo" ? "Uses this room’s photo under a dark wash." : "Brand wash and ink fill. No photo."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Card color</span>
+            <div class="preview-sheet__seg preview-sheet__seg--wrap" role="group" aria-label="Card color">
+              ${CARD_TONES.map((item) => `
+                <button type="button" class="${tone === item.id ? "is-on" : ""}" data-act="set-card-tone" data-value="${item.id}" aria-pressed="${tone === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${tone === "black" ? "Black cards sit flush with the ink background." : tone === "charcoal" ? "Charcoal ink #202020 — darker than steel, still a surface." : "Dark Steel #283239 — the brand card fill."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>This panel</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Layout test panel">
+              ${PREVIEW_DOCKS.map((item) => `
+                <button type="button" class="${dock === item.id ? "is-on" : ""}" data-act="set-preview-dock" data-value="${item.id}" aria-pressed="${dock === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${dock === "side" ? "Full-height sheet from the right." : "Bottom sheet over Home."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Device & summary</span>
+            <div class="preview-sheet__seg preview-sheet__seg--wrap" role="group" aria-label="How a device or summary opens">
               ${DEVICE_OPENS.map((item) => `
                 <button type="button" class="${open === item.id ? "is-on" : ""}" data-act="set-device-open" data-value="${item.id}" aria-pressed="${open === item.id ? "true" : "false"}">${item.label}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${open === "page" ? "Full page with a back chevron. Same controls, no overlay." : open === "side" ? "Right sidesheet plus dimmed overlay, like the integrator portal." : "Bottom sheet on mobile. Drag down or tap outside to dismiss."}</p>
+            <p class="preview-sheet__note">${open === "page" ? "Any device or summary group opens as a full page with a back chevron." : open === "side" ? "Any device or summary group opens as a right sidesheet." : "Any device or summary group opens as a bottom sheet."}</p>
           </div>
         </div>
       </aside>
     </div>`;
 }
 
+function firstName() {
+  return String(state.name || "John").trim().split(/\s+/)[0] || "John";
+}
+
+function dayGreeting() {
+  const hour = new Date().getHours();
+  const part = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return `${part}, ${firstName()}`;
+}
+
+function accountPhoto() {
+  return "assets/nav/avatar.png";
+}
+
 function topnav({ back, mark = true } = {}) {
+  const appChrome = state.loggedIn;
   return `
-    <header class="topnav">
+    <header class="topnav${appChrome ? " topnav--app" : ""}">
       <div class="topnav__side">
-        ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : previewMenuBtn()}
+        ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : appChrome ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>` : previewMenuBtn()}
       </div>
-      ${mark ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
+      ${mark && !appChrome ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
       <div class="topnav__side topnav__side--end">
-        ${back ? previewMenuBtn() : ""}
+        ${appChrome
+          ? `<button type="button" class="icon-btn" data-act="toggle-preview-menu" aria-expanded="${state.previewMenu ? "true" : "false"}" aria-haspopup="dialog" aria-label="Layout test">${icon("assets/nav/icon-settings.svg")}</button>
+          <button type="button" class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/nav/bell.svg", "nav-bell")}</button>`
+          : `${back ? previewMenuBtn() : ""}
         <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/icons/16/notifications.svg")}</button>
-        <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>
+        <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>`}
       </div>
     </header>`;
 }
@@ -1021,28 +1252,45 @@ function kindWell(kind, extra = "") {
   return `<span class="card-icon ${extra}">${icon(deviceIcon(kind))}</span>`;
 }
 
-function deviceCard(d, list) {
-  const selected = state.sheetDevice === d.id || state.viewingDevice === d.id;
-  if (list) {
-    return `
-      <button type="button" class="card-row ${selected ? "is-on" : ""}" data-device="${d.id}">
-        ${kindWell(d.kind, "card-icon--row")}
-        <span class="grow">
-          <span class="name">${d.name}</span>
-          <span class="meta">${deviceDetail(d)}</span>
-        </span>
-        ${chevron("right")}
-      </button>`;
-  }
+function dashIcon(src) {
+  return `<span class="dash-tile__icon">${icon(src)}</span>`;
+}
+
+function dashTile({ title, meta, src, attrs = "", extra = "", ok = false, selected = false }) {
   return `
-    <button type="button" class="card-tile ${selected ? "is-on" : ""}" data-device="${d.id}">
-      <span class="name">${d.name}</span>
-      ${kindWell(d.kind, "card-icon--tile")}
-      <span class="meta">${deviceDetail(d)}</span>
+    <button type="button" class="dash-tile ${extra}${selected ? " is-on" : ""}" ${attrs}>
+      ${src ? dashIcon(src) : ""}
+      <span class="dash-tile__text">
+        <span class="dash-tile__title">${title}</span>
+        <span class="dash-tile__meta${ok ? " is-ok" : ""}">${meta}</span>
+      </span>
     </button>`;
 }
 
-function kindFilters(kinds) {
+function deviceCard(d, list) {
+  const selected = state.sheetDevice === d.id || state.viewingDevice === d.id;
+  const attrs = `data-device="${d.id}"`;
+  if (list) {
+    return dashTile({
+      title: d.name,
+      meta: deviceDetail(d),
+      src: deviceIcon(d.kind),
+      extra: "dash-tile--row",
+      attrs,
+      selected,
+    });
+  }
+  return dashTile({
+    title: d.name,
+    meta: deviceDetail(d),
+    src: deviceIcon(d.kind),
+    extra: "dash-tile--vert",
+    attrs,
+    selected,
+  });
+}
+
+function kindFilters(kinds, { icons = false } = {}) {
   if (!kinds.length) return "";
   const cur = activeKind(kinds);
   return `
@@ -1050,7 +1298,7 @@ function kindFilters(kinds) {
       <button type="button" class="${cur === "all" ? "is-on" : ""}" data-act="set-kind" data-kind="all" aria-selected="${cur === "all"}">All</button>
       ${kinds.map((k) => `
         <button type="button" class="${cur === k ? "is-on" : ""}" data-act="set-kind" data-kind="${k}" aria-selected="${cur === k}">
-          ${icon(deviceIcon(k))} ${kindLabel(k)}
+          ${icons ? `${icon(deviceIcon(k))} ` : ""}${kindLabel(k)}
         </button>`).join("")}
     </div>`;
 }
@@ -1076,8 +1324,8 @@ function deviceStrip(room, { filters = true } = {}) {
     <div class="device-cats">
       ${groups.map((g) => `
         <section class="device-cat">
-          <h3 class="device-cat__title">${icon(deviceIcon(g.kind))} ${kindLabel(g.kind)}</h3>
-          <div class="${list ? "card-stack" : "card-rail"}">
+          <h3 class="device-cat__title">${kindLabel(g.kind)}</h3>
+          <div class="${list ? "card-stack dash-stack" : "card-rail dash-rail"}">
             ${g.items.map((d) => deviceCard(d, list)).join("")}
           </div>
         </section>`).join("")}
@@ -1447,90 +1695,232 @@ function quickStrip(room) {
     </div>`;
 }
 
-function renderHomeHere(room) {
+function sceneRail(room) {
   return `
-    <div class="stack-lg">
-      <div class="home-head">
-        <div class="hero-row">
-          ${homeSwitcher()}
-          <span class="weather">${room.weather}</span>
-        </div>
-        <p class="here-flag">Jemm knows you’re here</p>
-        <p class="kicker">This room</p>
-        <h1 class="h1">${room.name}</h1>
-        <p class="muted">Scenes, then devices for this room only — not the rest of the house.</p>
-      </div>
-      ${presenceBar()}
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">Scenes in ${room.name.toLowerCase()}</h2>
-        </div>
-        ${quickStrip(room)}
-      </section>
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">In this room</h2>
-          <button class="btn btn--ghost" style="width:auto;min-height:32px;padding:0" data-go="room" data-room="${room.id}">View room</button>
-        </div>
-        ${statsFor(room)}
-      </section>
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">Devices here</h2>
-          ${viewToggle("deviceView", state.deviceView)}
-        </div>
-        ${deviceStrip(room)}
-      </section>
+    <div class="scene-rail">
+      ${room.quick.map((q) => {
+        const look = sceneLook(room, q);
+        const on = state.scene[room.id] === q.id;
+        return `
+          <button type="button" class="scene-btn ${on ? "is-on" : ""}" data-go="scene" data-room="${room.id}" data-scene-id="${q.id}" aria-pressed="${on ? "true" : "false"}">
+            <img src="${look.photo}" alt="" style="object-position:${look.pos}" />
+            <span>${q.label}</span>
+          </button>`;
+      }).join("")}
     </div>`;
 }
 
-function renderHomeAway() {
-  const peek = state.viewingRoom ? roomById(state.viewingRoom) : null;
+function camerasIn(room) {
+  const list = room
+    ? room.devices.filter((d) => d.kind === "camera").map((d) => ({ ...d, room: room.name, roomId: room.id, photo: room.photo }))
+    : rooms().flatMap((r) => r.devices.filter((d) => d.kind === "camera").map((d) => ({ ...d, room: r.name, roomId: r.id, photo: r.photo })));
+  return list;
+}
+
+function cameraRail(room) {
+  const cams = camerasIn(room);
+  if (!cams.length) return "";
   return `
-    <div class="stack-lg">
-      <div class="home-head">
-        <div class="hero-row">
-          ${homeSwitcher()}
-          <span class="weather">84° · Sunny</span>
-        </div>
-        <span class="away-banner">You’re away</span>
-        <h1 class="h1">Whole home</h1>
-        <p class="muted">Jemm is running the house. Pick a room to look in remotely — that is not “here.”</p>
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Cameras</h2>
+        <button type="button" class="btn btn--link" ${normalizeHomeLayout(state.homeLayout) === "v2" ? `data-act="home-peek" data-peek-kind="cameras"` : `data-act="set-kind" data-kind="camera"`}>View all</button>
       </div>
-      ${presenceBar()}
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">Home status</h2>
-          <button class="btn btn--ghost" style="width:auto;min-height:32px;padding:0" data-go="rooms">Rooms</button>
-        </div>
-        ${statsFor(null)}
-        ${adminRequestCard()}
-      </section>
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">Choose a room to view</h2>
-          ${viewToggle("roomsView", roomsAreList() ? "list" : "grid")}
-        </div>
-        <p class="muted">Tap a room for a remote look, or open the floorplan.</p>
-        ${roomStrip({ peekId: peek && peek.id, peek: true })}
-        <button class="btn btn--secondary" data-go="rooms" data-rooms-view="plan">View floorplan</button>
-      </section>
-      ${peek ? `
-        <section class="stack-sm">
-          <div class="hero-row">
-            <h2 class="h2">Remote · ${peek.name}</h2>
-            <button class="btn btn--ghost" style="width:auto;min-height:32px;padding:0" data-act="clear-peek">Close</button>
-          </div>
-          <p class="muted">You’re still away. Scenes and devices below run in ${peek.name.toLowerCase()}.</p>
-          <h2 class="h2">Scenes</h2>
-          ${quickStrip(peek)}
-          <div class="hero-row">
-            <h2 class="h2">Devices</h2>
-            ${viewToggle("deviceView", state.deviceView)}
-          </div>
-          ${deviceStrip(peek)}
-        </section>` : ""}
+      <div class="scene-rail">
+        ${cams.map((d) => `
+          <button type="button" class="dash-tile dash-tile--vert dash-tile--cam" data-device="${d.id}">
+            <img class="dash-tile__photo" src="${d.photo}" alt="" />
+            ${dashIcon(deviceIcon("camera"))}
+            <span class="dash-tile__text">
+              <span class="dash-tile__title">${d.name}</span>
+              <span class="dash-tile__meta">${deviceDetail(d)}</span>
+            </span>
+          </button>`).join("")}
+      </div>
+    </section>`;
+}
+
+function outsideDegrees(home, room) {
+  const raw = home?.weather || room?.weather || "";
+  const match = String(raw).match(/(\d+)/);
+  return match ? match[1] : "84";
+}
+
+function homeSummaryKpis(room) {
+  const home = currentHome();
+  const lights = devicesOfKind("light", room);
+  const lightsOn = lights.filter((d) => ctl(d).on);
+  const playing = devicesOfKind("audio", room).map((d) => ({ d, c: ctl(d) })).find((x) => x.c.on);
+  const climates = devicesOfKind("climate", room);
+  const inside = climates[0] ? ctl(climates[0]).temp : Number.parseInt(String(room?.climate || "72"), 10) || 72;
+  const shades = devicesOfKind("shade", room);
+  const shadesOpen = shades.filter((d) => ctl(d).pos >= 50).length;
+  const fans = devicesOfKind("fan", room);
+  const fansOn = fans.filter((d) => ctl(d).on);
+  const unlocked = Object.values(state.doors || {}).filter((v) => v === "unlocked").length;
+  return [
+    {
+      title: lights.length ? `${lights.length} ${lights.length === 1 ? "Light" : "Lights"}` : "Lights",
+      meta: lightsOn.length ? "On" : "Off",
+      src: ICONS.light,
+      attrs: `data-act="home-peek" data-peek-kind="lights"`,
+    },
+    {
+      title: playing ? "Now playing" : "Not playing",
+      meta: playing ? (state.spotifyLinked !== false ? "Spotify" : songBySource(playing.c.source).title) : "Off",
+      src: ICONS.audio,
+      attrs: `data-act="home-peek" data-peek-kind="playing"`,
+    },
+    {
+      title: unlocked ? `${unlocked} open` : "All secured",
+      meta: unlocked ? "Doors unlocked" : "Doors locked",
+      src: "assets/icons/16/home.svg",
+      attrs: `data-act="home-peek" data-peek-kind="security"`,
+      alert: unlocked > 0,
+    },
+    {
+      title: `${inside}° Inside`,
+      meta: `${outsideDegrees(home, room)}° outside`,
+      src: ICONS.climate,
+      attrs: `data-act="home-peek" data-peek-kind="climate"`,
+    },
+    {
+      title: shades.length ? `${shades.length} ${shades.length === 1 ? "Shade" : "Shades"}` : "Shades",
+      meta: shades.length ? `${shadesOpen} open • ${shades.length - shadesOpen} closed` : "None here",
+      src: ICONS.shade,
+      attrs: `data-act="home-peek" data-peek-kind="shades"`,
+    },
+    {
+      title: fans.length ? `${fans.length} ${fans.length === 1 ? "Fan" : "Fans"}` : "Fans",
+      meta: fans.length ? (fansOn.length ? "On" : "Off") : "None here",
+      src: ICONS.fan,
+      attrs: `data-act="home-peek" data-peek-kind="fans"`,
+    },
+  ];
+}
+
+function homeSummaryTiles(room, { cameras = true, viewAll = true } = {}) {
+  const away = state.presence === "away";
+  const kpis = homeSummaryKpis(room);
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Summary</h2>
+        ${viewAll ? `<button type="button" class="btn btn--link" data-act="home-page" data-page="2">View all devices</button>` : ""}
+      </div>
+      ${dashTile({
+        title: "Home status",
+        meta: away ? "Away" : "Online",
+        src: ICONS.arc,
+        extra: "dash-tile--status",
+        attrs: `data-act="home-peek" data-peek-kind="status"`,
+        ok: !away,
+      })}
+      <div class="dash-kpi">
+        ${kpis.map((k) => dashTile({
+          title: k.title,
+          meta: k.meta,
+          src: k.src,
+          extra: `dash-tile--kpi${k.alert ? " is-alert" : ""}`,
+          attrs: k.attrs,
+        })).join("")}
+      </div>
+    </section>
+    ${cameras ? cameraRail(room) : ""}`;
+}
+
+function homeHero(room) {
+  const home = currentHome();
+  const away = !room;
+  return `
+    <div class="home-hello">
+      <h1 class="home-hello__title">${dayGreeting()}</h1>
+      <div class="home-hello__meta">
+        <span>${home.city || "Miami, Florida"}</span>
+        <span>${home.weather || room?.weather || "84 °F • Sunny"}</span>
+      </div>
+    </div>
+    <div class="home-place">
+      ${away
+        ? `<span class="away-banner">You’re away</span>`
+        : `<span class="here-chip"><svg class="here-chip__pin" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Z"/></svg>Current location</span>`}
+      <h2 class="home-place__title">${away ? "Whole home" : room.name}</h2>
     </div>`;
+}
+
+function homeDots(count) {
+  const cur = normalizeHomePage(state.homePage);
+  return `
+    <div class="home-dots" role="tablist" aria-label="Home pages">
+      ${Array.from({ length: count }, (_, i) => `
+        <button type="button" class="${i === cur ? "is-on" : ""}" data-act="home-page" data-page="${i}" data-home-dot role="tab" aria-label="${HOME_PANES[i] ? HOME_PANES[i].label : `Page ${i + 1}`}"${i === cur ? ` aria-selected="true"` : ` aria-selected="false"`}></button>
+      `).join("")}
+    </div>`;
+}
+
+function homeDeck(panes) {
+  return `
+    <div class="home-pager" data-home-pager>
+      ${panes.map((html, i) => `<section class="home-page home-pane" aria-label="${HOME_PANES[i] ? HOME_PANES[i].label : `Page ${i + 1}`}">${html}</section>`).join("")}
+    </div>
+    ${homeDots(panes.length)}`;
+}
+
+function homeScenesBlock(room) {
+  if (!room) return `<p class="muted">Pick a room to see scenes.</p>`;
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Scenes</h2>
+        <button type="button" class="btn btn--link" data-go="room" data-room="${room.id}">View all</button>
+      </div>
+      ${sceneRail(room)}
+    </section>`;
+}
+
+function homeScenesPane(room) {
+  return `${homeScenesBlock(room)}${cameraRail(room)}`;
+}
+
+function homeSimple(room, extra = "") {
+  return `
+    <div class="home-simple">
+      ${homeHero(room)}
+      ${homeSummaryTiles(room, { cameras: false, viewAll: false })}
+      ${homeScenesBlock(room)}
+      ${cameraRail(room)}
+      ${extra}
+    </div>`;
+}
+
+function homeDevicesPane(room) {
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Devices</h2>
+        ${viewToggle("deviceView", state.deviceView)}
+      </div>
+      ${room ? deviceStrip(room) : `<p class="muted">Pick a room to see devices.</p>`}
+    </section>`;
+}
+
+function renderHomeHere(room) {
+  if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(room);
+  return homeDeck([
+    `${homeHero(room)}${homeSummaryTiles(room)}`,
+    homeScenesPane(room),
+    homeDevicesPane(room),
+  ]);
+}
+
+function renderHomeAway() {
+  const peek = state.viewingRoom ? roomById(state.viewingRoom) : rooms()[0];
+  if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(null, adminRequestCard());
+  return homeDeck([
+    `${homeHero(null)}${homeSummaryTiles(null)}${adminRequestCard()}`,
+    homeScenesPane(peek),
+    homeDevicesPane(peek),
+  ]);
 }
 
 function coachHtml() {
@@ -1559,12 +1949,11 @@ function walkFlash() {
 
 function renderHome() {
   const room = hereRoom();
+  const simple = normalizeHomeLayout(state.homeLayout) === "v2";
   return `
     ${topnav()}
     ${coachHtml()}
-    ${jemmStripIf("top")}
-    <div class="stage">${room ? renderHomeHere(room) : renderHomeAway()}</div>
-    ${jemmStripIf("bottom")}
+    <div class="stage stage--home${simple ? " is-simple" : ""}">${room ? renderHomeHere(room) : renderHomeAway()}</div>
     ${bottomNav("home")}`;
 }
 
@@ -1613,8 +2002,10 @@ function renderScene() {
   const involved = state.scenePeople[key] || ["john"];
   const live = state.scene[s.room.id] === s.id;
   const people = visiblePeople();
+  const groups = sceneSetGroups(s.sets);
+  const back = state.sceneBack === "home" ? "home" : "room";
   return `
-    ${topnav({ back: "room" })}
+    ${topnav({ back })}
     ${jemmStripIf("top")}
     <div class="stage stack-lg">
       <div class="home-head">
@@ -1626,13 +2017,33 @@ function renderScene() {
         <img src="${s.photo}" alt="" style="object-position:${s.pos}" />
       </div>
       <section class="stack-sm">
-        <h2 class="h2">What this scene sets</h2>
-        ${s.sets.length ? `
-          <ul class="scene-sets">
-            ${s.sets.map((row) => `<li><span>${row.name}</span><em>${row.detail}</em></li>`).join("")}
-          </ul>` : `<p class="muted">This scene doesn’t change devices in ${s.room.name.toLowerCase()} yet.</p>`}
-        <p class="muted">Only this room. The rest of the house stays as it is.</p>
+        <h2 class="h2">Devices in this scene</h2>
+        <p class="muted">Every light, sound, shade, and device in ${s.room.name.toLowerCase()}. What this scene sets is marked.</p>
+        <div class="device-cats">
+          ${groups.map((g) => `
+            <section class="device-cat">
+              <h3 class="device-cat__title">${icon(deviceIcon(g.kind))}${kindLabel(g.kind)}</h3>
+              <div class="card-stack">
+                ${g.items.map((row) => {
+                  const open = row.kind === "camera";
+                  const tag = open ? "button" : "div";
+                  const extra = open ? ` type="button" data-device="${row.id}"` : "";
+                  return `
+                  <${tag} class="card-row ${row.set && row.on ? "is-on" : ""}"${extra}>
+                    ${kindWell(row.kind, "card-icon--row")}
+                    <span class="grow">
+                      <span class="name">${row.name}</span>
+                      <span class="meta">${row.detail}</span>
+                    </span>
+                    <span class="pill">${row.set ? "Set" : "Unchanged"}</span>
+                    ${open ? chevron("right") : ""}
+                  </${tag}>`;
+                }).join("")}
+              </div>
+            </section>`).join("")}
+        </div>
       </section>
+      <button type="button" class="btn ${live ? "btn--secondary" : "btn--primary"}" data-act="run-scene">${live ? "Run again" : "Run scene"}</button>
       <form class="stack-sm" data-form="scene">
         <div class="field">
           <label for="scene-name">Name</label>
@@ -1652,10 +2063,42 @@ function renderScene() {
           `).join("")}
         </div>
       </section>
-      <button type="button" class="btn ${live ? "btn--secondary" : "btn--primary"}" data-act="run-scene">${live ? "Run again" : "Run scene"}</button>
     </div>
     ${jemmStripIf("bottom")}
-    ${bottomNav("rooms")}`;
+    ${bottomNav(back === "home" ? "home" : "rooms")}`;
+}
+
+function renderCamera() {
+  const d = findDevice(state.viewingDevice);
+  if (!d || d.kind !== "camera") return renderHome();
+  const c = ctl(d);
+  const live = c.on && c.armed;
+  const here = state.presence === d.roomId;
+  const back = state.deviceBack && APP_SCREENS.has(state.deviceBack) && state.deviceBack !== "camera" && state.deviceBack !== "device" ? state.deviceBack : "home";
+  const room = roomById(d.roomId);
+  const feed = room?.photo || "assets/rooms/scene-living.jpg";
+  return `
+    ${topnav({ back })}
+    <div class="stage stage--camera">
+      <div class="cam-live ${live ? "is-live" : ""}">
+        <img src="${feed}" alt="" />
+        <span class="cam-live__badge">${live ? "Live" : "Idle"}</span>
+        <div class="cam-live__copy">
+          <h1 class="h1">${d.name}</h1>
+          <p class="muted">${d.room}${here ? " · You’re here" : ""} · ${live ? "Recording locally" : "Camera is idle"}</p>
+        </div>
+      </div>
+      <div class="cam-talk">
+        ${sheetPower(c, d.id)}
+        ${state.camReply ? `<p class="cam-talk__reply">${state.camReply}</p>` : `<p class="muted">Ask Jemm about what you see, or hold the mic.</p>`}
+        <form class="cam-talk__bar" data-form="cam-talk">
+          <input name="ask" type="text" placeholder="Ask Jemm…" autocomplete="off" />
+          <button type="button" class="icon-btn" data-act="voice" aria-label="Talk to Jemm">${icon("assets/nav/mic.svg")}</button>
+          <button type="submit" class="btn btn--primary">Send</button>
+        </form>
+      </div>
+    </div>
+    ${bottomNav(back === "rooms" || back === "room" ? "rooms" : back === "more" || back === "devices" ? "more" : "home")}`;
 }
 
 function renderHistory() {
@@ -1835,7 +2278,9 @@ function renderMore() {
         <button class="row" data-go="insights">${icon("assets/icons/16/dashboard.svg", "glyph")} <span class="grow">Insights</span> ${chevron("right")}</button>
         <button class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
         <button class="row" data-act="help">${icon("assets/nav/help.svg", "glyph")} <span class="grow">Help</span> ${chevron("right")}</button>
+        <button class="row" data-act="toggle-preview-menu">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Config</span> ${chevron("right")}</button>
       </div>
+      ${presenceBar()}
       <button class="btn btn--secondary" data-act="logout">Log out</button>
     </div>
     ${jemmStripIf("bottom")}
@@ -2345,6 +2790,39 @@ function sheetScenes(d) {
     </div>`;
 }
 
+function accountSheet() {
+  if (!state.accountSheet) return "";
+  const light = state.theme === "light";
+  return `
+    <div class="sheet sheet--account" data-act="close-account">
+      <aside class="sheet__panel account-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="account-title">
+        <header class="account-sheet__head">
+          <img class="account-sheet__ava" src="${accountPhoto()}" alt="" width="48" height="48" />
+          <div class="grow">
+            <h2 class="h2" id="account-title">${state.name}</h2>
+            <p class="muted">${state.email}</p>
+          </div>
+          <button type="button" class="icon-btn" data-act="close-account" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
+        </header>
+        <div class="card list-card">
+          <button type="button" class="row" data-go="profile" data-person="john">${icon("assets/nav/icon-profiles.svg", "glyph")} <span class="grow">Your profile</span> ${chevron("right")}</button>
+          <button type="button" class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
+          <button type="button" class="row" data-go="notify">${icon("assets/nav/bell.svg", "glyph nav-bell")} <span class="grow">Notifications</span> ${chevron("right")}</button>
+          <button type="button" class="row" data-act="help">${icon("assets/nav/help.svg", "glyph")} <span class="grow">Help</span> ${chevron("right")}</button>
+          <button type="button" class="row" data-act="toggle-preview-menu">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Config</span> ${chevron("right")}</button>
+        </div>
+        <section class="stack-sm">
+          <h2 class="h2">Appearance</h2>
+          <div class="seg" role="group" aria-label="Color theme">
+            <button type="button" class="${light ? "is-on" : ""}" data-act="set-theme" data-theme="light" aria-pressed="${light ? "true" : "false"}">Light</button>
+            <button type="button" class="${light ? "" : "is-on"}" data-act="set-theme" data-theme="dark" aria-pressed="${light ? "false" : "true"}">Dark</button>
+          </div>
+        </section>
+        <button type="button" class="btn btn--secondary" data-act="logout">Log out</button>
+      </aside>
+    </div>`;
+}
+
 function helpSheet() {
   if (!state.helpSheet) return "";
   const topics = [
@@ -2513,6 +2991,7 @@ function peoplePlan() {
   const people = visiblePeople();
   const here = people.filter((p) => p.here);
   return `
+    <p class="muted">${here.length ? `${here.length} ${here.length === 1 ? "person is" : "people are"} in the house. Tap someone to open their profile.` : "Nobody is marked as home right now."}</p>
     <div class="plan-wrap plan-wrap--people">
       <img src="${home.plan}" alt="Floorplan of ${home.name}" />
       ${here.map((p) => {
@@ -2525,30 +3004,76 @@ function peoplePlan() {
           </button>`;
       }).join("")}
     </div>
-    <p class="muted">Tap someone to open their profile. Guests open a limited guest view.</p>
     <div class="card-stack">
       ${people.map((p) => `
         <button type="button" class="card-row ${p.here ? "is-on" : ""}" data-go="profile" data-person="${p.id}">
           <img class="card-row__avatar" src="assets/avatars/${p.avatar}.png" alt="" />
           <span class="grow">
             <span class="name">${p.name}</span>
-            <span class="meta">${p.role} · ${p.here ? p.room : "Away"}</span>
+            <span class="meta">${p.role} · ${p.here ? `In the ${p.room.toLowerCase()}` : "Away"}</span>
           </span>
           ${chevron("right")}
         </button>`).join("")}
     </div>`;
 }
 
-function lightsPeek() {
-  const lights = rooms().flatMap((r) => r.devices.filter((d) => d.kind === "light").map((d) => ({ ...d, room: r.name, roomId: r.id })));
-  if (!lights.length) return `<p class="muted">No lights in this home.</p>`;
+function statusPeek() {
+  const home = currentHome();
+  const here = hereRoom();
+  const away = state.presence === "away";
+  const unlocked = Object.entries(state.doors || {}).filter(([, v]) => v === "unlocked").map(([id]) => id);
+  const mics = rooms().filter((r) => r.devices.some((d) => d.kind === "mic"));
+  const ok = !away && !unlocked.length && state.adminRequest?.status !== "pending";
+  const note = state.adminRequest?.status === "pending"
+    ? `${state.adminRequest.name.split(" ")[0]} asked Jemm for something that needs you.`
+    : unlocked.length
+      ? `${unlocked.map((id) => id[0].toUpperCase() + id.slice(1)).join(" and ")} ${unlocked.length === 1 ? "is" : "are"} unlocked.`
+      : away
+        ? "You’re away. Jemm is watching the house from here."
+        : "Everything looks good. Your home is running locally.";
   return `
-    <p class="muted">Tap On or Off. Changes apply in that room right away.</p>
+    <div class="peek-arc">
+      <img src="assets/devices/hero-arc.svg" alt="" width="40" height="78" />
+      <div class="grow">
+        <p class="kicker">Jemm Arc</p>
+        <strong>ID124I50</strong>
+        <span class="muted">${away ? "Online · You’re away" : `Online · ${here?.name || "This home"}`}</span>
+      </div>
+      <span class="peek-pill ${ok ? "is-ok" : "is-warn"}">${ok ? "Healthy" : "Needs a look"}</span>
+    </div>
+    <p class="muted">${note}</p>
+    <div class="card list-card">
+      <div class="row"><span class="grow">Connection</span><span class="muted">Local · Strong</span></div>
+      <div class="row"><span class="grow">Processing</span><span class="muted">On this home</span></div>
+      <div class="row"><span class="grow">Power</span><span class="muted">Balanced</span></div>
+      <div class="row"><span class="grow">Wake word</span><span class="muted">Hey Jemm</span></div>
+      <div class="row"><span class="grow">Mics listening</span><span class="muted">${mics.length ? mics.map((r) => r.name).join(", ") : "None"}</span></div>
+      <div class="row"><span class="grow">Last check</span><span class="muted">Just now</span></div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn btn--secondary" data-go="jemm">Arc settings</button>
+    </div>
+    <p class="muted">${home.name} stays private. Status and diagnostics stay on this network.</p>`;
+}
+
+function lightsPeek() {
+  const room = hereRoom();
+  const lights = devicesOfKind("light", room);
+  if (!lights.length) return `<p class="muted">No lights in ${room ? "this room" : "this home"}.</p>`;
+  const onCount = lights.filter((d) => ctl(d).on).length;
+  return `
+    <div class="peek-tools">
+      <p class="muted">${onCount ? `${onCount} ${onCount === 1 ? "light is" : "lights are"} on` : "Every light is off"} in ${room ? room.name.toLowerCase() : "this home"}. Turn them all at once, or tap one.</p>
+      <div class="seg" role="group" aria-label="All lights">
+        <button type="button" class="${onCount === lights.length ? "is-on" : ""}" data-act="lights-all" data-on="true">All on</button>
+        <button type="button" class="${onCount === 0 ? "is-on" : ""}" data-act="lights-all" data-on="false">All off</button>
+      </div>
+    </div>
     <div class="card-stack">
       ${lights.map((d) => {
         const c = ctl(d);
         return `
-          <div class="card-row">
+          <div class="card-row ${c.on ? "is-on" : ""}" data-act="ctl-power-toggle" data-device="${d.id}">
             ${kindWell("light", "card-icon--row")}
             <span class="grow">
               <span class="name">${d.name}</span>
@@ -2561,23 +3086,57 @@ function lightsPeek() {
 }
 
 function playingPeek() {
-  const list = playingNow();
-  if (!list.length) return `<p class="muted">Nothing is playing right now.</p>`;
+  const room = hereRoom();
+  const list = devicesOfKind("audio", room);
+  const live = list.filter((d) => ctl(d).on);
+  const primary = live[0] || list[0];
+  const c = primary ? ctl(primary) : { on: false, volume: 0, source: "" };
+  const song = songBySource(c.source);
+  const linked = state.spotifyLinked !== false;
+  if (!list.length) return `<p class="muted">No speakers in ${room ? "this room" : "this home"}.</p>`;
   return `
-    <div class="card-stack">
-      ${list.map((d) => {
-        const c = ctl(d);
-        return `
-          <button type="button" class="card-row ${state.sheetDevice === d.id || state.viewingDevice === d.id ? "is-on" : ""}" data-device="${d.id}">
-            ${kindWell(d.kind, "card-icon--row")}
+    <div class="sheet-now ${c.on ? "is-live" : ""}">
+      <p class="kicker">${c.on ? (linked ? "Playing from Spotify" : "Playing on Jemm") : "Paused"}</p>
+      <strong>${c.on ? song.title : "Nothing queued"}</strong>
+      <span class="muted">${c.on ? `${song.artist} · ${primary.room} · ${c.volume}%` : "Pick a song to start"}</span>
+    </div>
+    <section class="stack-sm">
+      <h3 class="h2">Spotify</h3>
+      <p class="muted">${linked ? "Connected to John’s Spotify. Disconnect to stop using that library." : "Not connected. Reconnect to play from your Spotify library."}</p>
+      <button type="button" class="btn ${linked ? "btn--secondary" : "btn--primary"}" data-act="toggle-spotify">${linked ? "Disconnect" : "Reconnect"}</button>
+    </section>
+    <section class="stack-sm">
+      <h3 class="h2">Switch song</h3>
+      <div class="card-stack">
+        ${SONGS.map((s) => `
+          <button type="button" class="card-row ${song.id === s.id && c.on ? "is-on" : ""}" data-act="play-song" data-song="${s.id}">
+            ${kindWell("audio", "card-icon--row")}
             <span class="grow">
-              <span class="name">${c.source || d.name}</span>
-              <span class="meta">${d.room} · ${c.volume}%</span>
+              <span class="name">${s.title}</span>
+              <span class="meta">${s.artist}</span>
             </span>
-            ${chevron("right")}
-          </button>`;
-      }).join("")}
-    </div>`;
+            <span class="muted">${song.id === s.id && c.on ? "Playing" : "Play"}</span>
+          </button>`).join("")}
+      </div>
+    </section>
+    ${list.length > 1 ? `
+      <section class="stack-sm">
+        <h3 class="h2">Speakers</h3>
+        <div class="card-stack">
+          ${list.map((d) => {
+            const dc = ctl(d);
+            return `
+              <button type="button" class="card-row ${dc.on ? "is-on" : ""}" data-device="${d.id}" data-keep-peek="true">
+                ${kindWell("audio", "card-icon--row")}
+                <span class="grow">
+                  <span class="name">${d.name}</span>
+                  <span class="meta">${d.room} · ${dc.on ? `${dc.volume}%` : "Off"}</span>
+                </span>
+                ${chevron("right")}
+              </button>`;
+          }).join("")}
+        </div>
+      </section>` : ""}`;
 }
 
 function securityPlan() {
@@ -2599,21 +3158,80 @@ function securityPlan() {
     <p class="muted">Secured doors are green. An unlocked door shows red. Tap a door to lock or unlock it.</p>`;
 }
 
-function homePeekOverlay() {
-  if (!state.homePeek) return "";
-  const kind = state.homePeek;
-  const titles = { people: "People home", lights: "Lights on", playing: "Now playing", security: "Security" };
-  const body = kind === "people" ? peoplePlan() : kind === "lights" ? lightsPeek() : kind === "playing" ? playingPeek() : kind === "security" ? securityPlan() : "";
+function kindListPeek(kind) {
+  const room = hereRoom();
+  const list = devicesOfKind(kind, room);
+  if (!list.length) return `<p class="muted">No ${kindLabel(kind).toLowerCase()} in ${room ? "this room" : "this home"}.</p>`;
   return `
-    <div class="overlay overlay--peek" data-act="close-peek">
+    <div class="card-stack">
+      ${list.map((d) => {
+        const c = ctl(d);
+        return `
+          <button type="button" class="card-row ${c.on ? "is-on" : ""}" data-device="${d.id}" data-keep-peek="true">
+            ${kindWell(kind, "card-icon--row")}
+            <span class="grow">
+              <span class="name">${d.name}</span>
+              <span class="meta">${d.room} · ${deviceDetail(d)}</span>
+            </span>
+            ${chevron("right")}
+          </button>`;
+      }).join("")}
+    </div>`;
+}
+
+function summaryBody(kind) {
+  if (kind === "status") return statusPeek();
+  if (kind === "people") return peoplePlan();
+  if (kind === "lights") return lightsPeek();
+  if (kind === "playing") return playingPeek();
+  if (kind === "security") return securityPlan();
+  if (kind === "climate") return kindListPeek("climate");
+  if (kind === "shades") return kindListPeek("shade");
+  if (kind === "fans") return kindListPeek("fan");
+  if (kind === "cameras") return kindListPeek("camera");
+  return "";
+}
+
+function summaryTitle(kind) {
+  return SUMMARY_TITLES[kind] || "Home";
+}
+
+function homePeekOverlay() {
+  if (openMode() === "page" || !state.homePeek) return "";
+  const kind = state.homePeek;
+  const side = openMode() === "side";
+  return `
+    <div class="overlay overlay--peek${side ? " is-side" : ""}" data-act="close-peek">
       <aside class="peek-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="peek-title">
+        ${side ? "" : `
+          <button type="button" class="sheet-grab" data-act="close-peek" aria-label="Dismiss sheet">
+            <span class="handle"></span>
+          </button>`}
         <header class="hero-row">
-          <h2 class="h2" id="peek-title">${titles[kind] || "Home"}</h2>
+          <h2 class="h2" id="peek-title">${summaryTitle(kind)}</h2>
           <button type="button" class="icon-btn" data-act="close-peek" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
-        ${body}
+        ${summaryBody(kind)}
       </aside>
     </div>`;
+}
+
+function renderSummary() {
+  const kind = state.viewingSummary || "status";
+  const back = state.summaryBack && APP_SCREENS.has(state.summaryBack) && state.summaryBack !== "summary" ? state.summaryBack : "home";
+  return `
+    ${topnav({ back })}
+    ${jemmStripIf("top")}
+    <div class="stage stack-lg">
+      <div class="home-head">
+        <p class="kicker">Summary</p>
+        <h1 class="h1">${summaryTitle(kind)}</h1>
+        <p class="muted">This group’s current devices. Open one to control it.</p>
+      </div>
+      ${summaryBody(kind)}
+    </div>
+    ${jemmStripIf("bottom")}
+    ${bottomNav(back === "rooms" || back === "room" ? "rooms" : back === "more" || back === "devices" ? "more" : "home")}`;
 }
 
 function jemmLine() {
@@ -2712,7 +3330,34 @@ function views() {
     help: renderHelp,
     notify: renderNotify,
     device: renderDevicePage,
+    camera: renderCamera,
+    summary: renderSummary,
   };
+}
+
+function bindHomePager() {
+  const el = document.querySelector("[data-home-pager]");
+  if (!el) return;
+  const page = normalizeHomePage(state.homePage);
+  const goTo = () => {
+    const width = el.clientWidth;
+    if (width) el.scrollLeft = page * width;
+  };
+  goTo();
+  requestAnimationFrame(goTo);
+  el.addEventListener("scroll", () => {
+    const width = el.clientWidth;
+    if (!width) return;
+    const next = normalizeHomePage(Math.round(el.scrollLeft / width));
+    if (next === state.homePage) return;
+    state.homePage = next;
+    persist();
+    document.querySelectorAll("[data-home-dot]").forEach((dot, i) => {
+      const on = i === next;
+      dot.classList.toggle("is-on", on);
+      dot.setAttribute("aria-current", on ? "true" : "false");
+    });
+  }, { passive: true });
 }
 
 function render() {
@@ -2722,11 +3367,12 @@ function render() {
   const app = document.getElementById("app");
   const keepSheet = Boolean(state.sheetDevice && liveSheetId === state.sheetDevice);
   app.innerHTML = `
-    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""}" data-look="${normalizeLook(state.appLook)}" data-device-open="${normalizeDeviceOpen(state.deviceOpen)}">
+    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""} ${!onboard && normalizeHomeBg(state.homeBg) === "photo" && homePhoto() ? "has-photo" : ""}" data-look="${normalizeLook(state.appLook)}" data-device-open="${normalizeDeviceOpen(state.deviceOpen)}"${ !onboard && normalizeHomeBg(state.homeBg) === "photo" && homePhoto() ? ` style="--home-photo:url('${homePhoto()}')"` : "" }>
       ${fn()}
       ${deviceSheet(keepSheet)}
       ${homePeekOverlay()}
       ${helpSheet()}
+      ${accountSheet()}
       ${previewSheet()}
       ${walkFlash()}
       ${voiceOverlay()}
@@ -2734,6 +3380,7 @@ function render() {
     </div>`;
   liveSheetId = state.sheetDevice;
   playJemmVideos();
+  bindHomePager();
   if (jemmCue) startLearnPulse();
 }
 
@@ -2755,6 +3402,7 @@ document.addEventListener("click", (e) => {
     if (t.dataset.person) extra.viewingPerson = t.dataset.person;
     if (t.dataset.sceneId) extra.viewingScene = t.dataset.sceneId;
     if (t.dataset.roomsView) extra.roomsView = t.dataset.roomsView;
+    if (t.dataset.go === "scene") extra.sceneBack = state.screen === "home" ? "home" : "room";
     if (t.dataset.go === "avatar" && state.loggedIn) extra.screen = "avatar";
     go(t.dataset.go, extra);
     return;
@@ -2801,16 +3449,28 @@ document.addEventListener("click", (e) => {
   if (act === "dismiss-coach") patch({ coach: false });
   if (act === "clear-peek") patch({ viewingRoom: null });
   if (act === "theme") patch({ theme: state.theme === "light" ? "dark" : "light" });
-  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false, previewMenu: false });
-  if (act === "toggle-preview-menu") patch({ previewMenu: !state.previewMenu, homeMenu: false, jemmMenu: false });
+  if (act === "set-theme") patch({ theme: t.dataset.theme === "light" ? "light" : "dark" });
+  if (act === "toggle-account") patch({ accountSheet: !state.accountSheet, helpSheet: false, helpChat: false, previewMenu: false, homeMenu: false, jemmMenu: false });
+  if (act === "close-account") patch({ accountSheet: false });
+  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false, previewMenu: false, accountSheet: false });
+  if (act === "toggle-preview-menu") patch({ previewMenu: !state.previewMenu, homeMenu: false, jemmMenu: false, accountSheet: false, helpSheet: false });
   if (act === "close-preview") patch({ previewMenu: false });
   if (act === "set-app-look") patch({ appLook: normalizeLook(t.dataset.value), previewMenu: true });
+  if (act === "set-home-bg") patch({ homeBg: normalizeHomeBg(t.dataset.value), previewMenu: true });
+  if (act === "set-card-tone") patch({ cardTone: normalizeCardTone(t.dataset.value), previewMenu: true });
+  if (act === "set-preview-dock") patch({ previewDock: normalizePreviewDock(t.dataset.value), previewMenu: true });
+  if (act === "set-home-layout") patch({ homeLayout: normalizeHomeLayout(t.dataset.value), homePage: 0, previewMenu: true });
+  if (act === "home-page") patch({ homePage: normalizeHomePage(t.dataset.page) });
   if (act === "set-device-open") {
     const deviceOpen = normalizeDeviceOpen(t.dataset.value);
-    const id = state.sheetDevice || state.viewingDevice;
+    const id = state.sheetDevice || (state.screen === "device" ? state.viewingDevice : null);
+    const summary = state.homePeek || (state.screen === "summary" ? state.viewingSummary : null);
     if (deviceOpen === "page" && id) {
       const from = state.screen !== "device" ? state.screen : (state.deviceBack || "home");
       go("device", { viewingDevice: id, deviceBack: from, deviceOpen, previewMenu: true, sheetDevice: null });
+    } else if (deviceOpen === "page" && summary) {
+      const from = state.screen !== "summary" ? state.screen : (state.summaryBack || "home");
+      go("summary", { viewingSummary: summary, summaryBack: from, deviceOpen, previewMenu: true, homePeek: null });
     } else if (id) {
       patch({
         deviceOpen,
@@ -2818,6 +3478,14 @@ document.addEventListener("click", (e) => {
         screen: state.screen === "device" ? (state.deviceBack || "home") : state.screen,
         sheetDevice: id,
         viewingDevice: id,
+      });
+    } else if (summary) {
+      patch({
+        deviceOpen,
+        previewMenu: true,
+        screen: state.screen === "summary" ? (state.summaryBack || "home") : state.screen,
+        homePeek: summary,
+        viewingSummary: summary,
       });
     } else {
       patch({ deviceOpen, previewMenu: true });
@@ -2829,7 +3497,11 @@ document.addEventListener("click", (e) => {
     if (state.screen !== "home") go("home");
   }
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
-  if (act === "set-kind") patch({ deviceKind: t.dataset.kind });
+  if (act === "set-kind") {
+    const extra = { deviceKind: t.dataset.kind };
+    if (state.screen === "home" && t.dataset.kind === "camera") extra.homePage = 2;
+    patch(extra);
+  }
   if (act === "close-sheet") {
     if (state.screen === "device") go(state.deviceBack || "home");
     else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
@@ -2842,8 +3514,34 @@ document.addEventListener("click", (e) => {
   }
   if (act === "run-device-scene") runScene(t.dataset.room, t.dataset.scene, { keepSheet: true });
   if (act === "set-sheet-tab") patch({ sheetTab: t.dataset.tab });
-  if (act === "home-peek") patch({ homePeek: t.dataset.peekKind, sheetDevice: null });
-  if (act === "close-peek") patch({ homePeek: null });
+  if (act === "home-peek") {
+    openSummary(t.dataset.peekKind);
+    return;
+  }
+  if (act === "close-peek") patch({ homePeek: null, viewingSummary: state.screen === "summary" ? state.viewingSummary : null });
+  if (act === "lights-all") {
+    const on = t.dataset.on === "true";
+    const ids = devicesOfKind("light", hereRoom()).map((d) => d.id);
+    if (ids.length) setCtlMany(ids, { on });
+  }
+  if (act === "ctl-power-toggle") {
+    const id = t.dataset.device;
+    const d = findDevice(id);
+    if (id && d) setCtl(id, d.kind === "camera" ? { on: !ctl(d).on, armed: !ctl(d).on } : { on: !ctl(d).on });
+  }
+  if (act === "toggle-spotify") {
+    const linked = state.spotifyLinked !== false;
+    patch({ spotifyLinked: !linked });
+    flash(linked ? "Spotify disconnected." : "Spotify reconnected.");
+  }
+  if (act === "play-song") {
+    const song = SONGS.find((s) => s.id === t.dataset.song) || SONGS[0];
+    const speakers = devicesOfKind("audio", hereRoom());
+    const target = speakers.find((d) => ctl(d).on) || speakers[0];
+    const nextCtl = { ...state.ctl };
+    if (target) nextCtl[target.id] = { ...(nextCtl[target.id] || {}), on: true, source: song.title };
+    patch({ playingSong: song.id, ctl: nextCtl });
+  }
   if (act === "deny-request") {
     const req = state.adminRequest;
     if (req) {
@@ -2887,7 +3585,7 @@ document.addEventListener("click", (e) => {
   if (act === "sheet-toggle") {
     if (sheetDragMoved) return;
   }
-  if (act === "help") patch({ helpSheet: true, helpChat: false, homeMenu: false, jemmMenu: false, sheetScene: null });
+  if (act === "help") patch({ helpSheet: true, helpChat: false, homeMenu: false, jemmMenu: false, accountSheet: false, sheetScene: null });
   if (act === "close-help") patch({ helpSheet: false, helpChat: false });
   if (act === "help-chat") patch({ helpChat: true });
   if (act === "help-chat-end") patch({ helpChat: false });
@@ -2901,7 +3599,10 @@ document.addEventListener("click", (e) => {
     const on = t.dataset.on === "true";
     if (id) setCtl(id, d && d.kind === "camera" ? { on, armed: on } : { on });
   }
-  if (act === "ctl-source") setCtl(state.sheetDevice, { source: t.dataset.value, on: t.dataset.value !== "Off" });
+  if (act === "ctl-source") {
+    const id = t.dataset.device || state.sheetDevice;
+    if (id) setCtl(id, { source: t.dataset.value, on: t.dataset.value !== "Off" });
+  }
   if (act === "ctl-mode") setCtl(state.sheetDevice, { mode: t.dataset.value, on: t.dataset.value !== "off" });
   if (act === "ctl-speed") setCtl(state.sheetDevice, { speed: t.dataset.value, on: true });
   if (act === "ctl-num") {
@@ -2983,6 +3684,15 @@ document.addEventListener("submit", (e) => {
       sceneWakes: { ...state.sceneWakes, [key]: data.wake || state.sceneWakes[key] },
     });
     flash("Scene saved.");
+  }
+  if (form.dataset.form === "cam-talk") {
+    const ask = String(data.ask || "").trim();
+    if (!ask) return;
+    const d = findDevice(state.viewingDevice);
+    const place = d ? `${d.name} in the ${d.room.toLowerCase()}` : "this camera";
+    const end = /[.!?…]$/.test(ask) ? "" : ".";
+    patch({ camReply: `I’m watching ${place}. I heard “${ask}${end}”` });
+    flash("Jemm heard you.");
   }
 });
 
@@ -3081,6 +3791,10 @@ document.addEventListener("keydown", (e) => {
   }
   if (state.screen === "device") {
     go(state.deviceBack || "home");
+    return;
+  }
+  if (state.screen === "summary") {
+    go(state.summaryBack || "home");
     return;
   }
   if (state.helpSheet) patch({ helpSheet: false, helpChat: false });
