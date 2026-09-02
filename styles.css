@@ -324,11 +324,11 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   max-width: var(--max-app);
   width: 100%;
   z-index: 32;
-  /* Onboarding/auth pages get a solid base; app pages start transparent */
-  background: color-mix(in srgb, var(--ink) 90%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 0.5px solid var(--glass-border);
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 0.5px solid transparent;
+  transition: background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
 }
 /* App nav overrides the solid base — starts clear, fades in on scroll */
 .topnav--app {
@@ -344,14 +344,9 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   min-height: 44px;
 }
 .topnav__side--end { justify-content: flex-end; }
-.topnav__mark {
-  width: 24px;
-  height: 20px;
-  margin: 0 auto;
-}
+/* App nav: starts clear, fades in on scroll */
 .topnav--app {
-  grid-template-columns: auto 1fr auto;
-  transition: background 0.2s ease, border-color 0.2s ease, backdrop-filter 0.2s ease;
+  transition: background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
 }
 .topnav--app.is-scrolled {
   background: color-mix(in srgb, var(--ink) 72%, transparent);

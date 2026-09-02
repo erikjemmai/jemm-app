@@ -1407,7 +1407,7 @@ function topnav({ back, mark = true } = {}) {
             ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>${previewMenuBtn()}`
             : previewMenuBtn()}
       </div>
-      ${mark && !appChrome ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
+      <span></span>
       <div class="topnav__side topnav__side--end">
         ${appChrome
           ? `${historyBtn}${bellBtn}`
