@@ -1000,11 +1000,11 @@ html[data-theme="light"] .nav-orb img { filter: invert(1); }
 }
 /* walk blur transition — replaces abrupt flash */
 #app .stage {
-  transition: filter 0.25s ease, opacity 0.25s ease;
+  transition: filter 0.28s ease, opacity 0.28s ease;
 }
 #app.is-walk-blur .stage {
-  filter: blur(6px);
-  opacity: 0.5;
+  filter: blur(8px);
+  opacity: 0.4;
   pointer-events: none;
 }
 
@@ -5148,6 +5148,27 @@ button.card--note:hover {
   flex-shrink: 0;
   margin-top: 4px;
   color: var(--muted);
+}
+.room-photo-btn {
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.room-photo-btn:hover,
+.room-photo-btn:focus-visible {
+  color: var(--ink);
+  background: var(--surface-2, rgba(255,255,255,0.08));
+  outline: 1.5px solid var(--gray-2);
 }
 
 /* ── Away home layout ─────────────────────────────────── */

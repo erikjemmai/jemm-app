@@ -597,16 +597,11 @@ function startWalkAuto() {
   if (walkAutoTimer) clearInterval(walkAutoTimer);
   walkAutoTimer = setInterval(() => {
     if (!state.walkAuto) { stopWalkAuto(); return; }
-    const app = document.getElementById("app");
-    if (app) app.classList.add("is-walk-blur");
-    setTimeout(() => {
+    transitionRoom(() => {
       walkNext();
       const newRoom = hereRoom();
       if (newRoom) flash(`Now in ${newRoom.name}`);
-      setTimeout(() => {
-        if (app) app.classList.remove("is-walk-blur");
-      }, 600);
-    }, 500);
+    });
   }, 20000);
 }
 
@@ -1126,6 +1121,18 @@ function walkNext() {
   const ids = [...rooms().map((r) => r.id), "away"];
   const i = Math.max(0, ids.indexOf(state.presence));
   setPresence(ids[(i + 1) % ids.length]);
+}
+
+function transitionRoom(changeFn) {
+  const app = document.getElementById("app");
+  if (!app) { changeFn(); return; }
+  app.classList.add("is-walk-blur");
+  setTimeout(() => {
+    changeFn();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      app.classList.remove("is-walk-blur");
+    }));
+  }, 280);
 }
 
 function speakAs(person, text) {
@@ -2831,8 +2838,8 @@ function renderRoom() {
             ${inHere ? `<p class="here-flag">You're here</p>` : away ? `<span class="away-banner">Remote view</span>` : `<p class="kicker">You’re in ${here.name}</p>`}
             <h1 class="h1">${room.name}</h1>
           </div>
-          <button type="button" class="btn btn--ghost btn--sm" data-act="room-photo-sheet" data-room="${room.id}" aria-label="Update room photo">
-            <svg viewBox="0 0 20 20" fill="none" width="15" height="15" aria-hidden="true"><circle cx="10" cy="10" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 10c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8-8-3.6-8-8z" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 3.6A8 8 0 0 1 17.9 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <button type="button" class="icon-btn room-photo-btn" data-act="room-photo-sheet" data-room="${room.id}" aria-label="Update room photo">
+            <svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><path d="M14.5 3.5l2 2L7 15l-3 1 1-3L14.5 3.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
         <p class="muted">${inHere
@@ -4963,24 +4970,14 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (act === "walk-next") {
-    const app = document.getElementById("app");
-    if (app) app.classList.add("is-walk-blur");
-    setTimeout(() => {
-      walkNext();
-      if (app) setTimeout(() => app.classList.remove("is-walk-blur"), 120);
-    }, 180);
+    transitionRoom(() => walkNext());
     return;
   }
   if (act === "walk-prev") {
     const ids = rooms().map((r) => r.id);
     const i = Math.max(0, ids.indexOf(state.presence));
     const prevId = ids[(i - 1 + ids.length) % ids.length];
-    const app = document.getElementById("app");
-    if (app) app.classList.add("is-walk-blur");
-    setTimeout(() => {
-      setPresence(prevId);
-      if (app) setTimeout(() => app.classList.remove("is-walk-blur"), 120);
-    }, 180);
+    transitionRoom(() => setPresence(prevId));
     return;
   }
   if (act === "set-spacing") patchLive({ spacing: normalizeSpacing(t.dataset.value) });
@@ -5047,8 +5044,7 @@ document.addEventListener("click", (e) => {
   }
   if (act === "set-home") setHome(t.dataset.home);
   if (act === "walk-next") {
-    walkNext();
-    if (state.screen !== "home") go("home");
+    transitionRoom(() => { walkNext(); if (state.screen !== "home") go("home"); });
   }
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
   if (act === "set-room-tab") patch({ roomTab: t.dataset.tab });
