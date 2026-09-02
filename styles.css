@@ -297,7 +297,7 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   width: 100%;
   max-width: var(--max-app);
   margin: 0 auto;
-  padding: 0 var(--page-pad) calc(var(--bottom-nav) + var(--space-y) + 8px);
+  padding: var(--page-pad) var(--page-pad) calc(var(--bottom-nav) + var(--space-y) + 8px);
   min-width: 0;
 }
 .shell.is-app > .stage {
@@ -530,7 +530,7 @@ html[data-theme="light"] .topnav--app.is-scrolled {
 
 .stack { display: flex; flex-direction: column; gap: 16px; }
 .stack-sm { display: flex; flex-direction: column; gap: var(--space-y); }
-.stack-lg { display: flex; flex-direction: column; gap: calc(var(--space-y) * 1.5); }
+.stack-lg { display: flex; flex-direction: column; gap: calc(var(--space-y) * 1.25); }
 .grow { flex: 1; }
 
 .card {
@@ -2089,8 +2089,7 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
 .home-simple {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-top: 16px;
+  gap: var(--space-y);
   padding-bottom: 16px;
 }
 .home-pager {
