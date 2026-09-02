@@ -4653,13 +4653,13 @@ function voiceOverlay() {
           <div class="jemm-sheet__title">
             <span class="jemm-sheet__orb ${muted ? "" : "is-live"}">${jemmFace()}</span>
             <span class="jemm-sheet__name">Jemm</span>
-            ${muted ? \`<span class="jemm-sheet__muted-badge">muted</span>\` : ""}
+            ${muted ? `<span class="jemm-sheet__muted-badge">muted</span>` : ""}
           </div>
           <div class="jemm-sheet__header-actions">
             <button type="button" class="jemm-sheet__mute-btn ${muted ? "is-on" : ""}" data-act="voice-mute" aria-label="${muted ? "Unmute" : "Mute"} Jemm" aria-pressed="${muted}">
               ${muted
-                ? \`<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 6l-3 3m0-3l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>\`
-                : \`<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 8a3 3 0 0 1 0 4M17 6a6 6 0 0 1 0 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>\`}
+                ? `<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 6l-3 3m0-3l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`
+                : `<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 8a3 3 0 0 1 0 4M17 6a6 6 0 0 1 0 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`}
             </button>
             <button type="button" class="icon-btn" data-act="voice-close" aria-label="Close">
               <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M5 15L15 5M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
@@ -4672,7 +4672,7 @@ function voiceOverlay() {
         </div>
 
         <div class="jemm-suggestions">
-          ${suggestions.map((s) => \`<button type="button" class="jemm-chip" data-act="voice-hint" data-hint="${s}">${s}</button>\`).join("")}
+          ${suggestions.map((s) => `<button type="button" class="jemm-chip" data-act="voice-hint" data-hint="${s}">${s}</button>`).join("")}
         </div>
 
         <div class="jemm-input-bar">
