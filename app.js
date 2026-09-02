@@ -488,6 +488,7 @@ function blank() {
     sceneNames: {},
     sceneWakes: {},
     scenePeople: {},
+    sceneTriggers: {},
     doors: { front: "locked", patio: "locked", garage: "locked" },
     adminRequest: null,
     jemmMood: "ok",
@@ -514,12 +515,23 @@ function blank() {
     summaryBack: "home",
     sceneBack: "room",
     camReply: "",
+    peekDeviceId: null,
+    deviceDetailStyle: "slider",
+    sceneDetailStyle: "sheet",
+    deviceNameEdits: {},
+    roomTab: "scenes",
+    roomPhotoSheet: null,
     deviceKind: "all",
     roomsView: "grid",
     peopleView: "list",
     followMe: true,
     coach: false,
     voice: false,
+    jemmExpanded: false,
+    jemmMuted: false,
+    voiceHistory: [],
+    wakeWord: "Hey Jemm",
+    wakeWordSheet: false,
     nightCardDismissed: false,
     nightCardDemo: true,
     walkAuto: false,
@@ -539,6 +551,7 @@ function blank() {
     helpChat: false,
     accountSheet: false,
     sheetScene: null,
+    sideScene: null,
     favorites: null,
     favEdit: false,
     favAdd: false,
@@ -550,7 +563,7 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, sideScene: null, homePeek: null, peekDeviceId: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true, wakeWordSheet: false };
     next.appLook = normalizeLook(next.appLook);
     next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
     next.previewDock = normalizePreviewDock(next.previewDock);
@@ -584,8 +597,17 @@ function startWalkAuto() {
   if (walkAutoTimer) clearInterval(walkAutoTimer);
   walkAutoTimer = setInterval(() => {
     if (!state.walkAuto) { stopWalkAuto(); return; }
-    walkNext();
-  }, 5000);
+    const app = document.getElementById("app");
+    if (app) app.classList.add("is-walk-blur");
+    setTimeout(() => {
+      walkNext();
+      const newRoom = hereRoom();
+      if (newRoom) flash(`Now in ${newRoom.name}`);
+      setTimeout(() => {
+        if (app) app.classList.remove("is-walk-blur");
+      }, 600);
+    }, 500);
+  }, 20000);
 }
 
 function stopWalkAuto() {
@@ -594,9 +616,11 @@ function stopWalkAuto() {
 
 const LEARN_KEYS = new Set([
   "ctl", "scene", "presence", "personTone", "personAccent", "personPersonality",
-  "personVisible", "personGone", "sceneNames", "sceneWakes", "scenePeople",
+  "personVisible", "personGone", "sceneNames", "sceneWakes", "scenePeople", "sceneTriggers",
   "doors", "adminRequest", "theme", "followMe", "faceId", "homeId", "name",
   "email", "avatar", "password",
+  "surfaceStyle", "spacing", "homeBackground", "bottomNavStyle", "deviceDetailStyle", "sceneDetailStyle",
+  "jemmMuted", "wakeWord",
 ]);
 
 function shouldLearn(next) {
@@ -1123,6 +1147,11 @@ function icon(src, extra = "") {
   return `<img src="${src}" alt="" class="${extra}" />`;
 }
 
+function powerIcon(size = 16) {
+  const src = size >= 20 ? "assets/icons/power-24.svg" : "assets/icons/power-16.svg";
+  return `<img src="${src}" alt="" class="power-icon" width="${size}" height="${size}" aria-hidden="true" />`;
+}
+
 function chevron(dir = "right") {
   return `<img src="assets/nav/chevron.svg" alt="" class="chev chev--${dir}" />`;
 }
@@ -1242,6 +1271,23 @@ function previewSheetBody() {
             <p class="preview-sheet__note">${surface === "glass" ? "Cards, tiles, sheets, and nav get a frosted backdrop blur. Needs photo or gradient behind." : "Solid fill surfaces — no blur. Consistent on any background."}</p>
           </div>
           <div class="preview-sheet__block">
+            <span>Device detail</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Device detail style">
+              <button type="button" class="${state.deviceDetailStyle === "slider" ? "is-on" : ""}" data-act="set-device-detail-style" data-value="slider" aria-pressed="${state.deviceDetailStyle === "slider"}">Slider</button>
+              <button type="button" class="${state.deviceDetailStyle === "graphic" ? "is-on" : ""}" data-act="set-device-detail-style" data-value="graphic" aria-pressed="${state.deviceDetailStyle === "graphic"}">Graphic</button>
+            </div>
+            <p class="preview-sheet__note">Slider: Jemm vertical bar. Graphic: bigger Josh-style visual with fill.</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Scene detail</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Scene detail style">
+              <button type="button" class="${state.sceneDetailStyle === "page" ? "is-on" : ""}" data-act="set-scene-detail-style" data-value="page" aria-pressed="${state.sceneDetailStyle === "page"}">Page</button>
+              <button type="button" class="${state.sceneDetailStyle === "sheet" ? "is-on" : ""}" data-act="set-scene-detail-style" data-value="sheet" aria-pressed="${state.sceneDetailStyle === "sheet"}">Sheet</button>
+              <button type="button" class="${state.sceneDetailStyle === "side" ? "is-on" : ""}" data-act="set-scene-detail-style" data-value="side" aria-pressed="${state.sceneDetailStyle === "side"}">Side</button>
+            </div>
+            <p class="preview-sheet__note">How scene details open: full page, bottom sheet, or side panel.</p>
+          </div>
+          <div class="preview-sheet__block">
             <span>Spacing</span>
             <div class="preview-sheet__seg" role="group" aria-label="Vertical spacing">
               ${SPACINGS.map((item) => `
@@ -1262,7 +1308,7 @@ function previewSheetBody() {
                 <button class="toggle ${state.presence === "away" ? "is-on" : ""}" data-act="toggle-away" role="switch" aria-checked="${state.presence === "away" ? "true" : "false"}" aria-label="Away mode"></button>
               </div>
             </div>
-            <p class="preview-sheet__note">${state.walkAuto ? "Cycling rooms every 5s — Jemm alerts on each move." : state.presence === "away" ? "Whole-home view active — no room context." : "Tap Room walk to cycle rooms, or Away to test the away view."}</p>
+            <p class="preview-sheet__note">${state.walkAuto ? "Cycling rooms every 20s. Screen blurs on each move and Jemm notifies you." : state.presence === "away" ? "Whole-home view active — no room context." : "Tap Room walk to cycle rooms, or Away to test the away view."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>View as</span>
@@ -1339,20 +1385,34 @@ function topnav({ back, mark = true } = {}) {
         <button type="button" class="view-as-banner__reset" data-act="set-view-as" data-value="admin" aria-label="Switch back to Admin">Admin</button>
       </div>`
     : "";
+  const historyBtn = `<button type="button" class="icon-btn" data-go="history" aria-label="Activity">
+    <svg viewBox="0 0 20 20" fill="none" width="20" height="20" aria-hidden="true">
+      <circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M10 6.5V10l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>`;
+  const bellBtn = `<button type="button" class="icon-btn topnav-bell" data-go="notify" aria-label="Notifications">
+    <svg viewBox="0 0 20 20" fill="none" width="20" height="20" aria-hidden="true">
+      <path d="M10 2.5a5.5 5.5 0 0 1 5.5 5.5v3l1.5 2.5H3L4.5 11V8A5.5 5.5 0 0 1 10 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M8 15.5a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+  </button>`;
   return `
     <header class="topnav${appChrome ? " topnav--app" : ""}">
       ${roleChip}
       <div class="topnav__side">
-        ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : appChrome ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>` : previewMenuBtn()}
+        ${back
+          ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>`
+          : appChrome
+            ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>${previewMenuBtn()}`
+            : previewMenuBtn()}
       </div>
       ${mark && !appChrome ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
       <div class="topnav__side topnav__side--end">
         ${appChrome
-          ? `${previewMenuBtn()}
-          <button type="button" class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/nav/bell.svg", "nav-bell")}</button>`
-          : `${previewMenuBtn()}
-        <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/icons/16/notifications.svg")}</button>
-        <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>`}
+          ? `${historyBtn}${bellBtn}`
+          : `<button class="icon-btn" data-go="notify" aria-label="Notifications">${bellBtn}</button>
+             <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>`}
       </div>
     </header>`;
 }
@@ -1489,7 +1549,7 @@ function setPresence(id) {
     setTimeout(() => {
       if (state.presence !== id) return;
       patch({ walkTo: null });
-      flash(`Jemm noticed you walked to the ${roomById(id).name.toLowerCase()}.`);
+      flash(`Now in the ${roomById(id).name.toLowerCase()}.`);
     }, 900);
     return;
   }
@@ -1641,7 +1701,7 @@ function deviceCard(d, list) {
       <span class="dash-tile__meta">${deviceDetail(d)}</span>
     </span>`;
   const powerBtn = canToggle
-    ? `<button type="button" class="dash-tile__power${c.on ? " is-on" : ""}" data-act="quick-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on ? "true" : "false"}"></button>`
+    ? `<button type="button" class="dash-tile__power${c.on ? " is-on" : ""}" data-act="quick-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on ? "true" : "false"}">${powerIcon(14)}</button>`
     : "";
   const tileClass = `dash-tile ${list ? "dash-tile--row" : "dash-tile--vert"}${selected ? " is-on" : ""}`;
   return `
@@ -2206,23 +2266,35 @@ function homeHero(room, { title, chip = "dot" } = {}) {
   const home = currentHome();
   const away = !room;
   const intro = title || normalizeHomeIntro(state.homeIntro);
-  const heading = intro === "property" ? homeSwitcher({ large: true }) : "";
+  const isPropDropdown = intro === "property";
   const mark = chip === "pin"
     ? `<svg class="here-chip__pin" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Z"/></svg>`
     : `<span class="here-chip__dot" aria-hidden="true"></span>`;
+  if (away && isPropDropdown) {
+    return `
+      <div class="home-hello">
+        <span class="away-banner" style="margin-bottom:4px">You’re away</span>
+        ${homeSwitcher({ large: true })}
+        <div class="home-hello__meta">
+          <span>${home.city || "Miami, Florida"}</span>
+          <span>${home.weather || "84° F · Sunny"}</span>
+        </div>
+      </div>`;
+  }
+  const heading = isPropDropdown ? homeSwitcher({ large: true }) : "";
   return `
     <div class="home-hello">
       ${heading}
       <div class="home-hello__meta">
         <span>${home.city || "Miami, Florida"}</span>
-        <span>${home.weather || room?.weather || "84° F • Sunny"}</span>
+        <span>${home.weather || room?.weather || "84° F · Sunny"}</span>
       </div>
     </div>
     <div class="home-place">
       ${away
         ? `<span class="away-banner">You’re away</span>`
         : `<span class="here-chip">${mark}Current location</span>`}
-      <h2 class="home-place__title">${away ? "Whole home" : room.name}</h2>
+      <h2 class="home-place__title">${away ? home.name : room.name}</h2>
     </div>`;
 }
 
@@ -2286,6 +2358,41 @@ function resolveFavorite(item) {
       attrs: state.favEdit ? `data-act="toggle-fav" data-fav-type="door" data-fav-id="${door.id}"` : `data-act="home-peek" data-peek-kind="security"`,
     };
   }
+  if (item.type === "scene") {
+    const [roomId, sceneId] = item.id.split(":");
+    const room = roomById(roomId);
+    if (!room) return null;
+    const q = room.quick?.find((s) => s.id === sceneId);
+    if (!q) return null;
+    const name = state.sceneNames[item.id] || q.label;
+    const live = state.scene[roomId] === sceneId;
+    const info = SCENE_INFO[sceneId] || {};
+    return {
+      title: name,
+      meta: live ? "Active" : room.name,
+      src: "assets/icons/16/scenes.svg",
+      photo: info.photo || room.photo || "",
+      attrs: state.favEdit
+        ? `data-act="toggle-fav" data-fav-type="scene" data-fav-id="${item.id}"`
+        : `data-act="go-scene" data-room="${roomId}" data-scene="${sceneId}"`,
+    };
+  }
+  if (item.type === "profile") {
+    const p = PEOPLE.find((p) => p.id === item.id) || (item.id === "john" ? { id: "john", nameKey: true, role: "Admin" } : null);
+    if (!p) return null;
+    const name = p.nameKey ? (state.userName || "You") : p.name;
+    const avatar = p.avatarKey ? state.userAvatar : p.avatar;
+    return {
+      title: name,
+      meta: p.role || "Household",
+      src: avatar ? `assets/avatars/${avatar}.jpg` : "assets/icons/16/profile.svg",
+      photo: "",
+      isAvatar: true,
+      attrs: state.favEdit
+        ? `data-act="toggle-fav" data-fav-type="profile" data-fav-id="${item.id}"`
+        : `data-go="profiles"`,
+    };
+  }
   const d = findDevice(item.id);
   if (!d) return null;
   return {
@@ -2300,7 +2407,9 @@ function resolveFavorite(item) {
 function favPickerKinds() {
   const kinds = KIND_ORDER.filter((kind) => devicesOfKind(kind).length);
   const items = kinds.map((kind) => ({ id: kind, type: "kind", label: KIND_LABEL[kind] || kind, src: deviceIcon(kind) }));
-  items.push({ id: "doors", type: "doors", label: "Doors", src: "assets/icons/16/home.svg" });
+  items.push({ id: "doors", type: "doors", label: "Doors & locks", src: "assets/icons/16/home.svg" });
+  items.push({ id: "scenes", type: "scenes", label: "Scenes", src: "assets/icons/16/scenes.svg" });
+  items.push({ id: "profiles", type: "profiles", label: "People", src: "assets/icons/16/profile.svg" });
   return items;
 }
 
@@ -2308,7 +2417,7 @@ function favPickerBody() {
   const kind = state.favKind;
   if (!kind) {
     return `
-      <p class="muted">Pick a type. Tap a device to pin it — it saves as you go.</p>
+      <p class="muted">Pick a type. Tap an item to pin it — saves as you go.</p>
       <div class="card list-card">
         ${favPickerKinds().map((item) => `
           <button type="button" class="row" data-act="set-fav-kind" data-value="${item.id}">
@@ -2318,9 +2427,10 @@ function favPickerBody() {
           </button>`).join("")}
       </div>`;
   }
+  const backBtn = `<button type="button" class="btn btn--link" data-act="set-fav-kind" data-value="">← All types</button>`;
   if (kind === "doors") {
     return `
-      <button type="button" class="btn btn--link" data-act="set-fav-kind" data-value="">All types</button>
+      ${backBtn}
       <div class="card list-card">
         ${HOME_DOORS.map((door) => {
           const on = isFavorite({ type: "door", id: door.id });
@@ -2328,14 +2438,61 @@ function favPickerBody() {
           <button type="button" class="row ${on ? "is-on" : ""}" data-act="toggle-fav" data-fav-type="door" data-fav-id="${door.id}" aria-pressed="${on ? "true" : "false"}">
             ${icon("assets/icons/16/home.svg", "glyph")}
             <span class="grow">${door.label} door</span>
-            <span class="muted">${on ? "Pinned" : "Add"}</span>
+            <span class="muted">${on ? "Pinned ✓" : "Add"}</span>
+          </button>`;
+        }).join("")}
+      </div>`;
+  }
+  if (kind === "scenes") {
+    const allScenes = rooms().flatMap((room) =>
+      room.quick.map((q) => {
+        const key = sceneKey(room.id, q.id);
+        const name = state.sceneNames[key] || q.label;
+        const id = key;
+        const on = isFavorite({ type: "scene", id });
+        return { id, name, room, on };
+      })
+    );
+    return `
+      ${backBtn}
+      <div class="card list-card">
+        ${allScenes.map(({ id, name, room, on }) => `
+          <button type="button" class="row ${on ? "is-on" : ""}" data-act="toggle-fav" data-fav-type="scene" data-fav-id="${id}" aria-pressed="${on ? "true" : "false"}">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" class="glyph" aria-hidden="true"><path d="M8 2l1.5 3 3.5.5-2.5 2.5.5 3.5L8 10l-3 1.5.5-3.5L3 5.5l3.5-.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>
+            <span class="grow">
+              <strong>${name}</strong>
+              <span class="muted" style="display:block;font-size:12px">${room.name}</span>
+            </span>
+            <span class="muted">${on ? "Pinned ✓" : "Add"}</span>
+          </button>`).join("") || `<p class="muted">No scenes yet.</p>`}
+      </div>`;
+  }
+  if (kind === "profiles") {
+    const people = PEOPLE.filter((p) => p.id !== "john");
+    const me = { id: "john", name: state.userName || "You", role: "Admin" };
+    const all = [me, ...people];
+    return `
+      ${backBtn}
+      <div class="card list-card">
+        ${all.map((p) => {
+          const on = isFavorite({ type: "profile", id: p.id });
+          const name = p.nameKey ? state.userName || "You" : p.name;
+          const avatar = p.avatarKey ? (state.userAvatar || "") : (p.avatar || "");
+          return `
+          <button type="button" class="row ${on ? "is-on" : ""}" data-act="toggle-fav" data-fav-type="profile" data-fav-id="${p.id}" aria-pressed="${on ? "true" : "false"}">
+            <span class="avatar-xs">${avatar ? `<img src="assets/avatars/${avatar}.jpg" alt="" />` : `<span>${name[0] || "?"}</span>`}</span>
+            <span class="grow">
+              <strong>${name}</strong>
+              <span class="muted" style="display:block;font-size:12px">${p.role}</span>
+            </span>
+            <span class="muted">${on ? "Pinned ✓" : "Add"}</span>
           </button>`;
         }).join("")}
       </div>`;
   }
   const list = devicesOfKind(kind);
   return `
-    <button type="button" class="btn btn--link" data-act="set-fav-kind" data-value="">All types</button>
+    ${backBtn}
     <div class="card list-card">
       ${list.map((d) => {
         const on = isFavorite({ type: "device", id: d.id });
@@ -2346,7 +2503,7 @@ function favPickerBody() {
             <strong>${d.name}</strong>
             <span class="muted" style="display:block;font-size:12px">${d.room}</span>
           </span>
-          <span class="muted">${on ? "Pinned" : "Add"}</span>
+          <span class="muted">${on ? "Pinned ✓" : "Add"}</span>
         </button>`;
       }).join("") || `<p class="muted">Nothing in this type yet.</p>`}
     </div>`;
@@ -2469,8 +2626,115 @@ function renderHomeHere(room) {
   return homeSimple(room);
 }
 
+function awayJemmCard() {
+  const home = currentHome();
+  return `
+    <div class="away-jemm-card">
+      <img src="assets/nav/jemm-face.png" class="away-jemm__face" alt="Jemm" />
+      <div class="away-jemm__text">
+        <p class="kicker">Jemm is watching</p>
+        <p>${home.name} is secure. Cameras and sensors active.</p>
+      </div>
+    </div>`;
+}
+
+function awaySecurityStatus() {
+  const allDoors = HOME_DOORS;
+  const allCams = rooms().flatMap((r) => r.devices.filter((d) => d.kind === "camera").map((d) => ({...d, roomId: r.id})));
+  const lockedCount = allDoors.filter((d) => d.locked !== false).length;
+  const armedCount = allCams.filter((d) => ctl(d).armed && ctl(d).on).length;
+  const allLocked = lockedCount === allDoors.length;
+  const allArmed = armedCount === allCams.length;
+  return `
+    <section class="away-security">
+      <button type="button" class="away-sec-item ${allLocked ? "is-ok" : "is-warn"}" data-go="devices" aria-label="Door locks">
+        <svg class="away-sec-item__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="11" rx="2" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="away-sec-item__label">Locks</span>
+        <span class="away-sec-item__value">${allLocked ? "All locked" : `${lockedCount}/${allDoors.length}`}</span>
+      </button>
+      <button type="button" class="away-sec-item ${allArmed ? "is-ok" : "is-warn"}" data-go="devices" aria-label="Cameras">
+        <svg class="away-sec-item__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M15 10l5-3v10l-5-3V10z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+          <rect x="3" y="7" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/>
+        </svg>
+        <span class="away-sec-item__label">Cameras</span>
+        <span class="away-sec-item__value">${allArmed ? "Armed" : `${armedCount}/${allCams.length} on`}</span>
+      </button>
+      <button type="button" class="away-sec-item" data-go="devices" aria-label="Climate">
+        <svg class="away-sec-item__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="away-sec-item__label">Climate</span>
+        <span class="away-sec-item__value">${rooms()[0]?.climate || "72°"}</span>
+      </button>
+    </section>`;
+}
+
+function awaySceneBlock() {
+  const allRooms = rooms();
+  const awayItems = [];
+  allRooms.forEach((r) => {
+    r.quick.filter((q) => ["away", "lock", "sleep", "quiet", "lights-off"].includes(q.id)).forEach((q) => {
+      if (!awayItems.find((x) => x.id === q.id)) {
+        awayItems.push({ ...q, room: r, roomId: r.id });
+      }
+    });
+  });
+  if (!awayItems.length) return "";
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Manage remotely</h2>
+      </div>
+      <div class="scene-rail">
+        ${awayItems.map((q) => {
+          const look = sceneLook(q.room, q);
+          const on = state.scene[q.roomId] === q.id;
+          return `
+            <button type="button" class="scene-btn ${on ? "is-on" : ""}" data-go="scene" data-room="${q.roomId}" data-scene-id="${q.id}" aria-pressed="${on}">
+              <img src="${look.photo}" alt="" style="object-position:${look.pos}" />
+              <span>${q.label}</span>
+            </button>`;
+        }).join("")}
+      </div>
+    </section>`;
+}
+
+function awayRoomsBlock() {
+  const rs = rooms();
+  return `
+    <section class="home-block">
+      <div class="home-block__head">
+        <h2 class="h2">Check a room</h2>
+      </div>
+      <div class="away-rooms-list">
+        ${rs.map((r) => `
+          <button type="button" class="card-row card-row--media" data-go="room" data-room="${r.id}">
+            <img class="card-row__photo" src="${r.photo}" alt="" />
+            <span class="grow">
+              <span class="name">${r.name}</span>
+              <span class="meta">${r.climate} · ${r.devices.length} devices</span>
+            </span>
+            ${chevron("right")}
+          </button>`).join("")}
+      </div>
+    </section>`;
+}
+
 function renderHomeAway() {
-  return homeSimple(null, adminRequestCard());
+  return `
+    <div class="home-simple">
+      ${homeHero(null)}
+      ${awayJemmCard()}
+      ${awaySecurityStatus()}
+      ${awaySceneBlock()}
+      ${awayRoomsBlock()}
+      ${adminRequestCard()}
+    </div>`;
 }
 
 function coachHtml() {
@@ -2490,7 +2754,7 @@ function walkFlash() {
   return `
     <div class="walk-flash" role="status">
       <div>
-        <p class="here-flag">Jemm noticed</p>
+        <p class="here-flag">You're here</p>
         <h2 class="h2">Walking to ${room.name}</h2>
         <p>Home will show this room’s summary, devices, and quick options.</p>
       </div>
@@ -2527,114 +2791,310 @@ function roomMasters(room) {
     </section>`;
 }
 
+function roomTabControl() {
+  const t = state.roomTab || "scenes";
+  return `
+    <div class="view-toggle" role="tablist" aria-label="Room sections">
+      <button type="button" class="${t === "scenes" ? "is-on" : ""}" data-act="set-room-tab" data-tab="scenes" aria-label="Scenes" aria-selected="${t === "scenes"}">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="16" height="16">
+          <rect x="3" y="4" width="14" height="3" rx="1" fill="currentColor" opacity=".9"/>
+          <rect x="3" y="9" width="9" height="2" rx="1" fill="currentColor" opacity=".6"/>
+          <rect x="3" y="13" width="6" height="2" rx="1" fill="currentColor" opacity=".4"/>
+          <circle cx="16" cy="14" r="3" stroke="currentColor" stroke-width="1.4"/>
+          <path d="M14.8 14l.9.9 1.7-1.7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button type="button" class="${t === "devices" ? "is-on" : ""}" data-act="set-room-tab" data-tab="devices" aria-label="Devices" aria-selected="${t === "devices"}">
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true" width="16" height="16">
+          <rect x="2.5" y="2.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="11" y="2.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="2.5" y="11" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="11" y="11" width="6.5" height="6.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+      </button>
+    </div>`;
+}
+
 function renderRoom() {
   const room = roomById(state.viewingRoom || state.presence);
   const inHere = state.presence === room.id;
   const away = state.presence === "away";
   const here = hereRoom();
+  const tab = state.roomTab || "scenes";
   return `
     ${topnav({ back: "rooms" })}
     ${jemmStripIf("top")}
     <div class="stage stack-lg">
       <div class="home-head">
-        ${inHere ? `<p class="here-flag">Jemm has you here</p>` : away ? `<span class="away-banner">Remote view</span>` : `<p class="kicker">You’re in ${here.name}</p>`}
-        <h1 class="h1">${room.name}</h1>
+        <div class="room-head-row">
+          <div>
+            ${inHere ? `<p class="here-flag">You're here</p>` : away ? `<span class="away-banner">Remote view</span>` : `<p class="kicker">You’re in ${here.name}</p>`}
+            <h1 class="h1">${room.name}</h1>
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm" data-act="room-photo-sheet" data-room="${room.id}" aria-label="Update room photo">
+            <svg viewBox="0 0 20 20" fill="none" width="15" height="15" aria-hidden="true"><circle cx="10" cy="10" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M2 10c0-4.4 3.6-8 8-8s8 3.6 8 8-3.6 8-8 8-8-3.6-8-8z" stroke="currentColor" stroke-width="1.5"/><path d="M7.5 3.6A8 8 0 0 1 17.9 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
         <p class="muted">${inHere
-          ? "Scenes and devices below are only for this room."
+          ? ""
           : away
-            ? "You’re away. Running a scene still happens in this room."
-            : `Looking at ${room.name.toLowerCase()} from ${here.name.toLowerCase()}. This does not move you.`}</p>
+            ? "You’re away. Running a scene still applies to this room."
+            : `Viewing from ${here.name.toLowerCase()}.`}</p>
       </div>
       ${roomMasters(room)}
-      <section class="stack-sm">
-        <h2 class="h2">Scenes</h2>
-        ${quickStrip(room)}
-      </section>
-      ${statsFor(room)}
-      <section class="stack-sm">
-        <div class="hero-row">
-          <h2 class="h2">${inHere ? "Devices here" : "Devices"}</h2>
-          ${viewToggle("deviceView", state.deviceView)}
-        </div>
-        ${deviceStrip(room)}
-      </section>
+      <div class="room-tab-bar">
+        ${roomTabControl()}
+      </div>
+      ${tab === "scenes" ? `
+        <section class="stack-sm">
+          ${quickStrip(room)}
+        </section>
+        ${statsFor(room)}
+        ${cameraRail(room)}
+      ` : `
+        <section class="stack-sm">
+          <div class="hero-row">
+            <span></span>
+            ${viewToggle("deviceView", state.deviceView)}
+          </div>
+          ${deviceStrip(room)}
+        </section>
+      `}
     </div>
     ${jemmStripIf("bottom")}
+    ${state.roomPhotoSheet === room.id ? roomPhotoSheet(room) : ""}
     ${bottomNav("rooms")}`;
+}
+
+function roomPhotoSheet(room) {
+  return `
+    <div class="sheet-backdrop" data-act="close-room-photo" role="presentation"></div>
+    <div class="bottom-sheet bottom-sheet--sm" role="dialog" aria-label="Update room photo">
+      <div class="sheet-handle"></div>
+      <div class="sheet-body stack-sm">
+        <p class="kicker">Room photo · ${room.name}</p>
+        <button type="button" class="card-row" data-act="room-photo-upload" data-room="${room.id}">
+          <svg viewBox="0 0 20 20" fill="none" width="18" height="18" class="card-icon--row" aria-hidden="true"><path d="M10 3v10M6 7l4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 14v1a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span class="grow"><span class="name">Choose from library</span><span class="meta">Pick a photo from your device</span></span>
+          ${chevron("right")}
+        </button>
+        <button type="button" class="card-row" data-act="room-photo-ai" data-room="${room.id}">
+          <svg viewBox="0 0 20 20" fill="none" width="18" height="18" class="card-icon--row" aria-hidden="true"><path d="M10 2l1.8 5.4H17l-4.3 3.1 1.6 5-4.3-3.1-4.3 3.1 1.6-5L3 7.4h5.2L10 2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+          <span class="grow"><span class="name">Generate with AI</span><span class="meta">Jemm creates a photo for this room</span></span>
+          ${chevron("right")}
+        </button>
+      </div>
+    </div>`;
+}
+
+/* ── Shared scene detail content ─────────────────────────────── */
+function sceneDetailData(roomId, sceneId) {
+  const s = findScene(roomId, sceneId);
+  if (!s) return null;
+  const key = sceneKey(s.room.id, s.id);
+  const name = state.sceneNames[key] || s.label;
+  const live = state.scene[s.room.id] === s.id;
+  const setRows = s.sets.filter((r) => r.set);
+  const unchangedRows = s.sets.filter((r) => !r.set);
+  // Build trigger phrases
+  const baseWake = state.sceneWakes[key] || `hey Jemm, ${String(s.label).toLowerCase()}`;
+  const triggers = state.sceneTriggers?.[key] || [
+    baseWake,
+    `run ${String(s.label).toLowerCase()}`,
+  ];
+  return { s, key, name, live, setRows, unchangedRows, triggers };
+}
+
+function sceneActionRow(row, sceneId) {
+  const kindIcons = {
+    light: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v1M10 17v1M2 10h1M17 10h1M4.2 4.2l.7.7M15.1 15.1l.7.7M15.1 4.9l-.7.7M4.9 15.1l-.7.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    audio: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><path d="M3 7.5h3l3-4v13l-3-4H3V7.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M14 6.5a5 5 0 0 1 0 7M16.5 4a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    shade: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><rect x="3" y="3" width="14" height="2" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M5 5v9m10-9v9M5 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    climate: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M10 5v2M10 13v2M5 10h2M13 10h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    camera: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><rect x="2" y="5" width="13" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M15 8l3-2v8l-3-2V8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
+    fan: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="1.5" fill="currentColor"/><path d="M10 8.5C10 6 11.5 4 13.5 4s3 2 1.5 4c-1.5 0-3-1-5 .5zM11.5 10c2.5 0 4.5 1.5 4.5 3.5s-2 3-4-1.5c0-1.5 1-3-.5-2zM8.5 10C6 10 4 8.5 4 6.5S6 3.5 7.5 8c.5 1.5-.5 3 1 2zM8 11.5c-2 0-4 1.5-4 3.5s2 3 4-1.5C8.5 12 8 10 9 11.5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>`,
+    lock: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><rect x="4" y="9" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+    mic: `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><rect x="7" y="2" width="6" height="9" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 10a6 6 0 0 0 12 0M10 16v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+  };
+  const iconSvg = kindIcons[row.kind] || `<svg viewBox="0 0 20 20" fill="none" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/></svg>`;
+  const isOff = row.on === false || row.detail === "Off";
+  return `
+    <div class="scene-action-row ${isOff ? "is-off" : "is-on"}">
+      <span class="scene-action-row__icon">${iconSvg}</span>
+      <span class="scene-action-row__body">
+        <span class="scene-action-row__name">${row.name}</span>
+        <span class="scene-action-row__detail">${row.detail}</span>
+      </span>
+      <button type="button" class="scene-action-row__edit icon-btn" data-act="edit-scene-action" data-device="${row.id}" data-scene="${sceneId}" aria-label="Edit ${row.name}">
+        <svg viewBox="0 0 20 20" fill="none" width="15" height="15" aria-hidden="true"><path d="M14.5 3.5a2.12 2.12 0 0 1 3 3l-10 10-4 1 1-4 10-10z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+      </button>
+    </div>`;
+}
+
+function sceneTriggerChips(triggers, key) {
+  return `
+    <div class="scene-triggers">
+      ${triggers.map((phrase, i) => `
+        <span class="scene-trigger-chip" contenteditable="false" data-trigger-idx="${i}" data-key="${key}">"${phrase}"</span>
+      `).join("")}
+      <button type="button" class="scene-trigger-add" data-act="add-scene-trigger" data-key="${key}" aria-label="Add trigger phrase">
+        <svg viewBox="0 0 20 20" fill="none" width="13" height="13" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Add phrase
+      </button>
+      <button type="button" class="scene-trigger-jemm" data-act="jemm-suggest-triggers" data-key="${key}" aria-label="Ask Jemm to suggest phrases">
+        <img src="assets/jemm-mark.svg" width="13" height="11" alt="" aria-hidden="true" />
+        Ask Jemm
+      </button>
+    </div>`;
+}
+
+function sceneDetailBody(roomId, sceneId, { compact = false } = {}) {
+  const d = sceneDetailData(roomId, sceneId);
+  if (!d) return "";
+  const { s, key, name, live, setRows, unchangedRows, triggers } = d;
+  const people = visiblePeople();
+  const involved = state.scenePeople[key] || ["john"];
+  return `
+    <div class="scene-detail-body ${compact ? "is-compact" : ""}">
+      <div class="scene-detail-hero">
+        <img src="${s.photo}" alt="" style="object-position:${s.pos}" class="scene-detail-hero__img" />
+        <div class="scene-detail-hero__overlay">
+          <p class="scene-detail-hero__room">${s.room.name}</p>
+          <h2 class="scene-detail-hero__name">${name}</h2>
+          ${live ? `<span class="scene-detail-hero__live">running now</span>` : ""}
+        </div>
+      </div>
+
+      <div class="scene-detail-section">
+        <button type="button" class="btn ${live ? "btn--secondary btn--sm" : "btn--primary btn--sm"}" data-act="run-scene" data-room="${roomId}" data-scene="${sceneId}" style="width:100%">${live ? "Run again" : "Run scene"}</button>
+      </div>
+
+      <div class="scene-detail-section">
+        <p class="scene-detail-label">What will happen</p>
+        ${setRows.length
+          ? setRows.map((r) => sceneActionRow(r, sceneId)).join("")
+          : `<p class="scene-detail-empty">No devices are set by this scene.</p>`}
+        ${unchangedRows.length ? `
+          <details class="scene-unchanged">
+            <summary>${unchangedRows.length} device${unchangedRows.length > 1 ? "s" : ""} unchanged</summary>
+            ${unchangedRows.map((r) => sceneActionRow(r, sceneId)).join("")}
+          </details>` : ""}
+      </div>
+
+      <div class="scene-detail-section">
+        <p class="scene-detail-label">Trigger phrases
+          <span class="scene-detail-label__hint">say to Jemm</span>
+        </p>
+        ${sceneTriggerChips(triggers, key)}
+      </div>
+
+      <div class="scene-jemm-suggest">
+        <img src="assets/jemm-mark.svg" width="18" height="15" alt="Jemm" aria-hidden="true" />
+        <span class="scene-jemm-suggest__text">Ask Jemm to improve this scene or suggest new ones based on your habits.</span>
+        <button type="button" class="scene-jemm-suggest__btn" data-act="jemm-suggest-scene" data-room="${roomId}" data-scene="${sceneId}">Suggest</button>
+      </div>
+
+      <div class="scene-detail-section">
+        <p class="scene-detail-label">People</p>
+        <div class="quick">
+          ${people.map((p) => `
+            <button type="button" class="${involved.includes(p.id) ? "is-on" : ""}" data-act="toggle-scene-person" data-person="${p.id}" data-room="${roomId}" data-scene="${sceneId}">${p.name.split(" ")[0]}</button>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="scene-detail-section">
+        <p class="scene-detail-label">Name</p>
+        <input class="scene-detail-name-input" type="text" value="${name}" data-act="edit-scene-name" data-key="${key}" aria-label="Scene name" />
+        <p class="scene-detail-blurb">${s.blurb}</p>
+      </div>
+    </div>`;
+}
+
+/* ── Wake word picker ─────────────────────────────────────────── */
+const WAKE_WORDS = [
+  { id: "hey-jemm",   label: "Hey Jemm",    desc: "Default — natural and clear" },
+  { id: "jemm",       label: "Jemm",        desc: "Short and snappy" },
+  { id: "yo-jemm",    label: "Yo Jemm",     desc: "Casual" },
+  { id: "ok-jemm",    label: "OK Jemm",     desc: "Familiar feel" },
+  { id: "hi-jemm",    label: "Hi Jemm",     desc: "Friendly" },
+  { id: "custom",     label: "Custom…",     desc: "Type your own wake phrase" },
+];
+
+function wakeWordSheet() {
+  if (!state.wakeWordSheet) return "";
+  const current = state.wakeWord || "Hey Jemm";
+  return `
+    <div class="overlay wake-word-overlay" data-act="close-wake-word" role="dialog" aria-modal="true" aria-label="Choose wake word">
+      <div class="sheet wake-word-sheet" data-stop>
+        <div class="sheet-close-row">
+          <p class="sheet-title">Wake word</p>
+          <button type="button" class="icon-btn" data-act="close-wake-word" aria-label="Close">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M5 15L15 5M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <p class="wake-word-hint">Choose what you say to get Jemm's attention. Works with Arc and any Jemm mic.</p>
+        <div class="card list-card wake-word-list">
+          ${WAKE_WORDS.map((w) => {
+            const active = (w.id === "custom" ? !WAKE_WORDS.slice(0,-1).some(x => x.label === current) : w.label === current);
+            return `
+              <button type="button" class="wake-word-row ${active ? "is-on" : ""}" data-act="set-wake-word" data-value="${w.label}" data-id="${w.id}" aria-pressed="${active}">
+                <span class="wake-word-row__body">
+                  <span class="wake-word-row__label">${w.id === "custom" && !WAKE_WORDS.slice(0,-1).some(x => x.label === current) ? `"${current}"` : w.label}</span>
+                  <span class="wake-word-row__desc">${w.desc}</span>
+                </span>
+                <span class="wake-word-row__check" aria-hidden="true">
+                  ${active ? `<svg viewBox="0 0 20 20" fill="none" width="18" height="18"><path d="M4 10l5 5L16 6" stroke="var(--neon)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ""}
+                </span>
+              </button>`;
+          }).join("")}
+        </div>
+        <p class="wake-word-note">Changes take effect immediately on all Arc devices in this home.</p>
+      </div>
+    </div>`;
+}
+
+function sceneBottomSheet() {
+  const ref = state.sheetScene;
+  if (!ref) return "";
+  return `
+    <div class="overlay scene-sheet-overlay" data-act="close-scene" role="dialog" aria-modal="true" aria-label="Scene detail">
+      <div class="sheet scene-sheet" data-stop>
+        <div class="sheet-close-row">
+          <button type="button" class="icon-btn" data-act="close-scene" aria-label="Close">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M5 15L15 5M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        ${sceneDetailBody(ref.roomId, ref.id, { compact: true })}
+      </div>
+    </div>`;
+}
+
+function sceneSideSheet() {
+  const ref = state.sideScene;
+  if (!ref) return "";
+  return `
+    <div class="overlay scene-side-overlay" data-act="close-scene" role="dialog" aria-modal="true" aria-label="Scene detail">
+      <aside class="scene-side-panel" data-stop>
+        <div class="sheet-close-row">
+          <button type="button" class="icon-btn" data-act="close-scene" aria-label="Close">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M5 15L15 5M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        ${sceneDetailBody(ref.roomId, ref.id)}
+      </aside>
+    </div>`;
 }
 
 function renderScene() {
   const s = findScene(state.viewingRoom, state.viewingScene);
   if (!s) return renderRoom();
-  const key = sceneKey(s.room.id, s.id);
-  const name = state.sceneNames[key] || s.label;
-  const wake = state.sceneWakes[key] || `Hey Jemm, ${String(s.label).toLowerCase()}`;
-  const involved = state.scenePeople[key] || ["john"];
-  const live = state.scene[s.room.id] === s.id;
-  const people = visiblePeople();
-  const groups = sceneSetGroups(s.sets);
   const back = state.sceneBack === "home" ? "home" : state.sceneBack === "scenes" ? "scenes" : "room";
   return `
     ${topnav({ back })}
-    ${jemmStripIf("top")}
-    <div class="stage stack-lg">
-      <div class="home-head">
-        <p class="kicker">${live ? "Running now" : "Scene"} · ${s.room.name}</p>
-        <h1 class="h1">${name}</h1>
-        <p class="muted">${s.blurb}</p>
-      </div>
-      <div class="scene-hero">
-        <img src="${s.photo}" alt="" style="object-position:${s.pos}" />
-      </div>
-      <section class="stack-sm">
-        <h2 class="h2">Devices in this scene</h2>
-        <p class="muted">Every light, sound, shade, and device in ${s.room.name.toLowerCase()}. What this scene sets is marked.</p>
-        <div class="device-cats">
-          ${groups.map((g) => `
-            <section class="device-cat">
-              <h3 class="device-cat__title">${icon(deviceIcon(g.kind))}${kindLabel(g.kind)}</h3>
-              <div class="card-stack">
-                ${g.items.map((row) => {
-                  const open = row.kind === "camera";
-                  const tag = open ? "button" : "div";
-                  const extra = open ? ` type="button" data-device="${row.id}"` : "";
-                  return `
-                  <${tag} class="card-row ${row.set && row.on ? "is-on" : ""}"${extra}>
-                    ${kindWell(row.kind, "card-icon--row")}
-                    <span class="grow">
-                      <span class="name">${row.name}</span>
-                      <span class="meta">${row.detail}</span>
-                    </span>
-                    <span class="pill">${row.set ? "Set" : "Unchanged"}</span>
-                    ${open ? chevron("right") : ""}
-                  </${tag}>`;
-                }).join("")}
-              </div>
-            </section>`).join("")}
-        </div>
-      </section>
-      <button type="button" class="btn ${live ? "btn--secondary" : "btn--primary"}" data-act="run-scene">${live ? "Run again" : "Run scene"}</button>
-      <form class="stack-sm" data-form="scene">
-        <div class="field">
-          <label for="scene-name">Name</label>
-          <input id="scene-name" name="name" value="${name}" />
-        </div>
-        <div class="field">
-          <label for="scene-wake">Wake phrase</label>
-          <input id="scene-wake" name="wake" value="${wake}" />
-        </div>
-        <button class="btn btn--secondary" type="submit">Save scene</button>
-      </form>
-      <section class="stack-sm">
-        <h2 class="h2">Who this involves</h2>
-        <div class="quick">
-          ${people.map((p) => `
-            <button type="button" class="${involved.includes(p.id) ? "is-on" : ""}" data-act="toggle-scene-person" data-person="${p.id}">${p.name.split(" ")[0]}</button>
-          `).join("")}
-        </div>
-      </section>
+    <div class="stage">
+      ${sceneDetailBody(state.viewingRoom, state.viewingScene)}
     </div>
-    ${jemmStripIf("bottom")}
     ${bottomNav(back === "home" ? "home" : "rooms")}`;
 }
 
@@ -2731,7 +3191,7 @@ function renderRooms() {
     <div class="stage stack-lg">
       <div class="hero-row">
         <div>
-          ${here ? `<p class="here-flag">Jemm has you in ${here.name}</p>` : `<span class="away-banner">You’re away</span>`}
+          ${here ? `<p class="here-flag">In ${here.name}</p>` : `<span class="away-banner">You’re away</span>`}
           <h1 class="h1">Rooms</h1>
         </div>
         ${roomsViewToggle()}
@@ -2853,19 +3313,21 @@ function renderScenes() {
       </div>
       <div class="scenes-list">
         ${allScenes.map(({ room, q, name, photo, pos, live, key }) => `
-          <button type="button" class="scene-card ${live ? "is-live" : ""}" data-act="go-scene" data-room="${room.id}" data-scene="${q.id}">
-            <img class="scene-card__photo" src="${photo}" alt="" style="object-position:${pos}" />
-            <div class="scene-card__body">
-              <div class="scene-card__info">
-                <span class="scene-card__name">${name}</span>
-                <span class="scene-card__room">${room.name}</span>
+          <div class="scene-card ${live ? "is-live" : ""}">
+            <button type="button" class="scene-card__tap" data-act="go-scene" data-room="${room.id}" data-scene="${q.id}" aria-label="${name}">
+              <img class="scene-card__photo" src="${photo}" alt="" style="object-position:${pos}" />
+              <div class="scene-card__body">
+                <div class="scene-card__info">
+                  <span class="scene-card__name">${name}</span>
+                  <span class="scene-card__room">${room.name}</span>
+                </div>
+                ${live ? `<span class="scene-card__live">Running</span>` : ""}
               </div>
-              ${live ? `<span class="scene-card__live">Running</span>` : ""}
-              <button type="button" class="scene-card__more" data-act="scene-more" data-room="${room.id}" data-scene="${q.id}" aria-label="More options">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="2.5" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13.5" cy="8" r="1.5"/></svg>
-              </button>
-            </div>
-          </button>`).join("")}
+            </button>
+            <button type="button" class="scene-card__more" data-act="scene-more" data-room="${room.id}" data-scene="${q.id}" aria-label="More options for ${name}">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="2.5" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13.5" cy="8" r="1.5"/></svg>
+            </button>
+          </div>`).join("")}
       </div>
     </div>
     ${bottomNav("more")}`;
@@ -2886,7 +3348,7 @@ function renderMore() {
         ${chevron("right")}
       </button>
       <article class="card" style="padding:16px">
-        ${here ? `<p class="here-flag">Jemm has you in ${here.name}</p>` : `<span class="away-banner">You’re away</span>`}
+        ${here ? `<p class="here-flag">In ${here.name}</p>` : `<span class="away-banner">You’re away</span>`}
         <p class="muted" style="margin-top:8px">${here
           ? "Home follows this room as you walk. Devices and quick options stay scoped to where you are."
           : "Home is showing whole-house status. Open a room to look in remotely."}</p>
@@ -2966,7 +3428,7 @@ function renderProfile() {
             <span class="grow">Voice recognition</span>
             <button class="toggle ${p.listen ? "is-on" : ""}" data-act="toggle-listen" data-person="${p.id}" role="switch" aria-checked="${p.listen}" aria-label="Voice recognition"></button>
           </div>
-          <div class="row"><span class="grow">Wake word</span><span class="muted">${p.wake}</span></div>
+          <div class="row" role="button" tabindex="0" data-act="open-wake-word"><span class="grow">Wake word</span><span class="muted">${state.wakeWord || p.wake}</span>${chevron("right")}</div>
           <div class="row"><span class="grow">Language</span><span class="muted">${p.language}</span></div>
         </div>
       </section>
@@ -3136,7 +3598,7 @@ function renderJemm() {
       <div class="card list-card">
         <div class="row"><span class="grow">Halo brightness</span><span class="muted">60%</span></div>
         <div class="row"><span class="grow">Power mode</span><span class="muted">Balanced</span></div>
-        <div class="row"><span class="grow">Wake word</span><span class="muted">Hey Jemm</span></div>
+        <div class="row" role="button" tabindex="0" data-act="open-wake-word"><span class="grow">Wake word</span><span class="muted">${state.wakeWord || "Hey Jemm"}</span>${chevron("right")}</div>
         <div class="row"><span class="grow">Processing</span><span class="muted">On device</span></div>
         <div class="row"><span class="grow">Presence</span><span class="muted">${state.followMe ? "Follows you" : "Whole home"}</span></div>
       </div>
@@ -3200,7 +3662,7 @@ function notifyItems() {
       tone: "ok",
       kicker: "Held",
       t: "Vault request denied",
-      d: "Jemm told Mia no. The vault stays locked.",
+      d: "Request denied. The vault stays locked.",
       attrs: `data-go="profile" data-person="mia"`,
     });
   }
@@ -3209,7 +3671,7 @@ function notifyItems() {
       tone: "warn",
       kicker: "Warning",
       t: "Patio door is unlocked",
-      d: "Jemm caught it live. Tap to lock it from the security plan.",
+      d: "Tap to lock it now.",
       attrs: `data-act="home-peek" data-peek-kind="security"`,
     });
   }
@@ -3218,14 +3680,14 @@ function notifyItems() {
       tone: "alert",
       kicker: "Fault",
       t: lake ? "Great room climate is 4° above target" : "Bedroom climate is 4° above target",
-      d: "Jemm held the set point and is asking before it overrides.",
+      d: "Set point is held. Tap to review or override.",
       attrs: `data-device="${climateId}"`,
     },
     {
       tone: "alert",
       kicker: "Alert",
       t: lake ? "Moisture near the great room" : "Moisture under the kitchen sink",
-      d: `Leak sensor tripped. Jemm wants you in the ${lake ? "great room" : "kitchen"}.`,
+      d: `Leak sensor tripped. Check the ${lake ? "great room" : "kitchen"}.`,
       attrs: `data-go="room" data-room="${leakRoom}"`,
     },
     {
@@ -3256,7 +3718,7 @@ function notifyItems() {
       kicker: here ? "Here" : "Away",
       t: here ? `You’re in the ${here.name.toLowerCase()}` : "You’re away",
       d: here
-        ? "Jemm switched Home to this room’s devices and scenes."
+        ? "Home is showing this room's devices and scenes."
         : "Home is showing whole-house status. Pick a room to look in.",
       attrs: `data-go="home"`,
     },
@@ -3279,21 +3741,37 @@ function notifyItems() {
 }
 
 function renderNotify() {
-  const req = state.adminRequest;
+  const items = notifyItems();
+  const urgent = items.filter((n) => n.tone === "alert" || n.tone === "warn");
+  const updates = items.filter((n) => n.tone === "ok");
+  const dotColor = { alert: "var(--rose)", warn: "var(--warn)", ok: "var(--neon)" };
+  const renderRow = (n) => `
+    <button type="button" class="notif-row" ${n.attrs}>
+      <span class="notif-row__dot" style="background:${dotColor[n.tone] || dotColor.ok}" aria-hidden="true"></span>
+      <span class="notif-row__body">
+        <span class="notif-row__title">${n.t}</span>
+        <span class="notif-row__desc">${n.d}</span>
+      </span>
+      ${chevron("right")}
+    </button>`;
   return `
     ${topnav({ back: state.loggedIn ? "home" : "welcome" })}
     <div class="stage stack-lg">
       <h1 class="h1">Notifications</h1>
-      <p class="muted">Tap an alert to open the room, device, or person Jemm is watching.</p>
-      ${req?.status === "pending" || req?.status === "denied" ? adminRequestCard() : ""}
-      <div class="stack-sm">
-        ${notifyItems().map((n) => `
-          <button type="button" class="card card--note ${n.tone === "alert" ? "card--alert" : n.tone === "warn" ? "card--warn" : ""}" ${n.attrs}>
-            <span class="note-tone note-tone--${n.tone}">${n.kicker}</span>
-            <strong>${n.t}</strong>
-            <p class="muted">${n.d}</p>
-          </button>`).join("")}
-      </div>
+      ${urgent.length ? `
+        <section class="notif-section">
+          <p class="notif-section__label">Needs attention</p>
+          <div class="card list-card notif-list">
+            ${urgent.map(renderRow).join("")}
+          </div>
+        </section>` : ""}
+      ${updates.length ? `
+        <section class="notif-section">
+          <p class="notif-section__label">Updates</p>
+          <div class="card list-card notif-list">
+            ${updates.map(renderRow).join("")}
+          </div>
+        </section>` : ""}
     </div>
     ${state.loggedIn ? bottomNav("home") : ""}`;
 }
@@ -3711,7 +4189,7 @@ function adminRequestCard() {
   if (req.status === "denied") {
     return `
       <article class="card card--warn">
-        <p class="kicker">Jemm held the line</p>
+        <p class="kicker">Request held</p>
         <h2 class="h2">Vault request denied</h2>
         <p>I told ${req.name.split(" ")[0]} no. The vault stays locked.</p>
         <button class="btn btn--secondary" data-act="clear-request">Dismiss</button>
@@ -3791,7 +4269,7 @@ function statusPeek() {
       <div class="row"><span class="grow">Connection</span><span class="muted">Local · Strong</span></div>
       <div class="row"><span class="grow">Processing</span><span class="muted">On this home</span></div>
       <div class="row"><span class="grow">Power</span><span class="muted">Balanced</span></div>
-      <div class="row"><span class="grow">Wake word</span><span class="muted">Hey Jemm</span></div>
+      <div class="row" role="button" tabindex="0" data-act="open-wake-word"><span class="grow">Wake word</span><span class="muted">${state.wakeWord || "Hey Jemm"}</span>${chevron("right")}</div>
       <div class="row"><span class="grow">Mics listening</span><span class="muted">${mics.length ? mics.map((r) => r.name).join(", ") : "None"}</span></div>
       <div class="row"><span class="grow">Last check</span><span class="muted">Just now</span></div>
     </div>
@@ -3803,6 +4281,90 @@ function statusPeek() {
 
 function eqBars() {
   return `<span class="peek-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
+}
+
+function kelvinToHex(k) {
+  if (k <= 2700) return "#fbd26c";
+  if (k <= 3500) return "#ffecbc";
+  if (k <= 5000) return "#fff5e8";
+  return "#e8f4ff";
+}
+
+function peekGraphicSlider(d, c) {
+  const pct = Math.round(c.intensity ?? 60);
+  const fillH = Math.round(pct * 2.32); // 232px total track height
+  return `
+    <div class="peek-graphic-wrap">
+      <div class="peek-graphic-slider" data-device="${d.id}">
+        <div class="peek-graphic-slider__track">
+          <div class="peek-graphic-slider__fill" style="height:${pct}%"></div>
+          <span class="peek-graphic-slider__pct">${pct}%</span>
+        </div>
+        <input type="range" class="peek-graphic-slider__input" min="0" max="100" value="${pct}"
+          data-ctl="intensity" data-device="${d.id}" aria-label="Brightness" />
+      </div>
+    </div>`;
+}
+
+function peekDeviceMood(d, c) {
+  if (d.kind !== "light") return "";
+  const swatches = [
+    { kelvin: 2700, bg: "#fbd26c", label: "Warm" },
+    { kelvin: 3500, bg: "#ffecbc", label: "Neutral" },
+    { kelvin: 5500, bg: "#e8f4ff", label: "Cool" },
+  ];
+  return `
+    <div class="peek-mood-row">
+      <span class="peek-mood-label">Mood</span>
+      <div class="peek-mood-swatches">
+        ${swatches.map((s) => `
+          <button type="button" class="peek-mood-swatch${Math.abs((c.kelvin ?? 2700) - s.kelvin) < 400 ? " is-on" : ""}"
+            style="background:${s.bg}" data-act="ctl-kelvin" data-device="${d.id}" data-value="${s.kelvin}"
+            aria-label="${s.label} ${s.kelvin}K" title="${s.label}">
+          </button>`).join("")}
+      </div>
+    </div>`;
+}
+
+function peekDeviceNameRow(d) {
+  const name = (state.deviceNameEdits || {})[d.id] || d.name;
+  return `
+    <div class="peek-name-row">
+      <label class="peek-name-label" for="peek-name-${d.id}">Device name</label>
+      <input id="peek-name-${d.id}" class="peek-name-input" type="text" value="${name}"
+        data-act="edit-device-name" data-device="${d.id}" aria-label="Rename ${d.name}" />
+    </div>`;
+}
+
+function peekDeviceDetail(d) {
+  const c = ctl(d);
+  const graphic = state.deviceDetailStyle === "graphic";
+  const room = roomById(d.roomId);
+  return `
+    <div class="peek-device-panel" role="region" aria-label="${d.name} detail">
+      <div class="peek-device-header">
+        <button type="button" class="peek-device-back" data-act="peek-device-back" aria-label="Back to list">
+          <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true">
+            <path d="M12 5l-5 5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div class="peek-device-header__title">
+          <span class="peek-device-header__room">${room ? room.name : ""}</span>
+          <span class="peek-device-header__name">${d.name}</span>
+        </div>
+        <button type="button" class="peek-device-header__power${c.on ? " is-on" : ""}"
+          data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on}">
+          ${powerIcon(18)}
+        </button>
+      </div>
+      <div class="peek-device-body">
+        ${graphic && d.kind === "light"
+          ? peekGraphicSlider(d, c)
+          : `<div class="peek-device-controls">${sheetControls(d, c)}</div>`}
+        ${peekDeviceMood(d, c)}
+        ${peekDeviceNameRow(d)}
+      </div>
+    </div>`;
 }
 
 function peekMarquee(text) {
@@ -3842,6 +4404,7 @@ function peekSlider(id, field, value, min, max, step = 1) {
 
 function peekControlCard(d) {
   const c = ctl(d);
+  const isOpen = state.peekDeviceId === d.id;
   let control = "";
   if (d.kind === "light") control = peekSlider(d.id, "intensity", c.on ? c.intensity : 0, 0, 100);
   else if (d.kind === "audio") control = peekSlider(d.id, "volume", c.on ? c.volume : 0, 0, 100);
@@ -3855,13 +4418,19 @@ function peekControlCard(d) {
         `).join("")}
       </div>`;
   }
+  const kelvinDot = d.kind === "light" && c.kelvin
+    ? `<span class="peek-kelvin-dot" style="background:${kelvinToHex(c.kelvin)}" aria-hidden="true"></span>`
+    : "";
   return `
-    <div class="peek-card ${c.on ? "is-on" : ""}">
+    <div class="peek-card ${c.on ? "is-on" : ""}${isOpen ? " is-selected" : ""}">
       <div class="peek-card__row">
         <button type="button" class="peek-card__icon${c.on ? " is-on" : ""}${d.kind === "fan" && c.on ? " is-spin" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}">
           ${icon(deviceIcon(d.kind))}
         </button>
-        <button type="button" class="peek-card__name" data-device="${d.id}" aria-label="Open ${d.name}">${d.name}<span class="peek-card__detail">${c.on ? deviceDetail(d) : "Off"}</span></button>
+        <button type="button" class="peek-card__name" data-act="peek-device-open" data-device="${d.id}" aria-label="Open ${d.name}">
+          ${d.name}${kelvinDot}
+          <span class="peek-card__detail">${c.on ? deviceDetail(d) : "Off"}</span>
+        </button>
         ${control}
       </div>
     </div>`;
@@ -3973,24 +4542,28 @@ function homePeekOverlay() {
   const side = openMode() === "side";
   const room = hereRoom();
   const list = info.deviceKind ? devicesOfKind(info.deviceKind, room) : [];
+  const drillDevice = state.peekDeviceId ? findDevice(state.peekDeviceId) : null;
   return `
     <div class="overlay overlay--peek${side ? " is-side" : ""}" data-act="close-peek">
-      <aside class="peek-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="peek-title">
+      <aside class="peek-sheet${drillDevice ? " has-drill" : ""}" data-stop role="dialog" aria-modal="true" aria-labelledby="peek-title">
         ${side ? "" : `
           <button type="button" class="sheet-grab" data-act="close-peek" aria-label="Dismiss sheet">
             <span class="handle"></span>
           </button>`}
-        <p class="peek-room">${room ? room.name : "Whole home"}</p>
-        <header class="peek-head">
-          <div class="peek-head__title">
-            ${info.icon ? `<span class="peek-head__icon">${icon(info.icon)}</span>` : ""}
-            <h2 class="peek-head__name" id="peek-title">${info.title}</h2>
+        <div class="peek-sheet__base">
+          <p class="peek-room">${room ? room.name : "Whole home"}</p>
+          <header class="peek-head">
+            <div class="peek-head__title">
+              ${info.icon ? `<span class="peek-head__icon">${icon(info.icon)}</span>` : ""}
+              <h2 class="peek-head__name" id="peek-title">${info.title}</h2>
+            </div>
+            ${info.all ? peekAllSeg(kind, list) : ""}
+          </header>
+          <div class="peek-body">
+            ${summaryBody(kind)}
           </div>
-          ${info.all ? peekAllSeg(kind, list) : ""}
-        </header>
-        <div class="peek-body">
-          ${summaryBody(kind)}
         </div>
+        ${drillDevice ? `<div class="peek-sheet__drill">${peekDeviceDetail(drillDevice)}</div>` : ""}
       </aside>
     </div>`;
 }
@@ -4047,34 +4620,76 @@ function jemmStripIf(_place) {
 function voiceOverlay() {
   if (!state.voice) return "";
   const room = hereRoom();
-  const hints = room
-    ? [`Dim the lights`, `Evening scene`, `Play something`]
-    : [`How’s the house?`, `Arm the cameras`, `Turn off all lights`];
-  const spoken = state.voiceSpoken || "";
-  const reply = state.voiceReply || "";
+  const expanded = state.jemmExpanded;
+  const muted = state.jemmMuted;
+  const history = state.voiceHistory || [];
+
+  const suggestions = room
+    ? [`Dim the lights`, `Evening scene`, `Play something`, `What's the temperature?`]
+    : [`How's the house?`, `Arm cameras`, `Turn off all lights`, `Who's home?`];
+
+  const threadHTML = history.length
+    ? history.map((m) => m.role === "user"
+        ? `<div class="jemm-msg jemm-msg--user">${m.text}</div>`
+        : `<div class="jemm-msg jemm-msg--jemm">
+             <span class="jemm-msg__face">${jemmFace()}</span>
+             <span class="jemm-msg__text">${m.text}</span>
+           </div>`
+    ).join("")
+    : `<div class="jemm-empty">
+         <span class="jemm-empty__face">${jemmFace()}</span>
+         <p class="jemm-empty__line">What can I do for you?</p>
+       </div>`;
+
   return `
-    <div class="overlay voice-overlay" data-act="voice-close">
-      <div class="voice-sheet" data-stop>
-        ${spoken ? `<div class="voice-bubble voice-bubble--user">${spoken}</div>` : ""}
-        ${reply ? `<div class="voice-bubble voice-bubble--jemm"><span class="voice-bubble__icon">${jemmFace()}</span><span>${reply}</span></div>` : ""}
-        <div class="voice-hints">
-          ${hints.map((h) => `<button type="button" class="chip" data-act="voice-hint">${h}</button>`).join("")}
+    <div class="overlay jemm-overlay ${expanded ? "is-expanded" : ""}" data-act="voice-close">
+      <div class="jemm-sheet ${expanded ? "is-expanded" : ""}" data-stop>
+
+        <div class="jemm-sheet__handle-area" data-act="voice-expand">
+          <span class="jemm-sheet__handle"></span>
         </div>
-        <div class="voice-bar">
-          <button type="button" class="voice-bar__side" data-act="voice-keyboard" aria-label="Keyboard">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 9h1M8 9h1M11 9h1M14 9h1M5 12h4M13 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          </button>
-          <button type="button" class="voice-bar__mic jemm-orb is-live" aria-label="Stop listening">
+
+        <div class="jemm-sheet__header">
+          <div class="jemm-sheet__title">
+            <span class="jemm-sheet__orb ${muted ? "" : "is-live"}">${jemmFace()}</span>
+            <span class="jemm-sheet__name">Jemm</span>
+            ${muted ? \`<span class="jemm-sheet__muted-badge">muted</span>\` : ""}
+          </div>
+          <div class="jemm-sheet__header-actions">
+            <button type="button" class="jemm-sheet__mute-btn ${muted ? "is-on" : ""}" data-act="voice-mute" aria-label="${muted ? "Unmute" : "Mute"} Jemm" aria-pressed="${muted}">
+              ${muted
+                ? \`<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M16 6l-3 3m0-3l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>\`
+                : \`<svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M3 7h4l5-4v14l-5-4H3V7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M15 8a3 3 0 0 1 0 4M17 6a6 6 0 0 1 0 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>\`}
+            </button>
+            <button type="button" class="icon-btn" data-act="voice-close" aria-label="Close">
+              <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M5 15L15 5M5 5l10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="jemm-thread" id="jemm-thread">
+          ${threadHTML}
+        </div>
+
+        <div class="jemm-suggestions">
+          ${suggestions.map((s) => \`<button type="button" class="jemm-chip" data-act="voice-hint" data-hint="${s}">${s}</button>\`).join("")}
+        </div>
+
+        <div class="jemm-input-bar">
+          <button type="button" class="jemm-mic-btn ${muted ? "" : "is-live"}" data-act="voice-listen" aria-label="Tap to speak">
             ${jemmGlow()}
             ${jemmFace()}
           </button>
-          <button type="button" class="voice-bar__side" data-act="voice-close" aria-label="Close">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input type="text" class="jemm-text-input" placeholder="Type to Jemm\u2026" id="jemm-text" aria-label="Type a message to Jemm" />
+          <button type="button" class="jemm-send-btn" data-act="voice-text-submit" aria-label="Send">
+            <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true"><path d="M17 10L3 3l3 7-3 7 14-7z" fill="currentColor"/></svg>
           </button>
         </div>
+
       </div>
     </div>`;
 }
+
 
 function views() {
   return {
@@ -4161,6 +4776,31 @@ function bindFrostScroll() {
   scroller.addEventListener("scroll", sync, { passive: true });
 }
 
+function roomWalkPill() {
+  if (!state.loggedIn || state.presence === "away") return "";
+  const list = rooms();
+  if (list.length < 2) return "";
+  const room = hereRoom();
+  if (!room) return "";
+  const idx = list.findIndex((r) => r.id === room.id);
+  const prev = list[(idx - 1 + list.length) % list.length];
+  const next = list[(idx + 1) % list.length];
+  return `
+    <div class="room-walk-pill" aria-label="Room simulator" role="group">
+      <button type="button" class="room-walk-pill__btn" data-act="walk-prev" aria-label="Previous room: ${prev.name}" title="${prev.name}">
+        <svg viewBox="0 0 16 16" fill="none" width="12" height="12" aria-hidden="true">
+          <path d="M10 3L6 8l4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <span class="room-walk-pill__name">${room.name}</span>
+      <button type="button" class="room-walk-pill__btn" data-act="walk-next" aria-label="Next room: ${next.name}" title="${next.name}">
+        <svg viewBox="0 0 16 16" fill="none" width="12" height="12" aria-hidden="true">
+          <path d="M6 3l4 5-4 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>`;
+}
+
 function render() {
   applyTheme();
   const fn = views()[state.screen] || renderWelcome;
@@ -4173,6 +4813,9 @@ function render() {
       ${fn()}
       ${deviceSheet(keepSheet)}
       ${homePeekOverlay()}
+      ${sceneBottomSheet()}
+      ${sceneSideSheet()}
+      ${wakeWordSheet()}
       ${helpSheet()}
       ${accountSheet()}
       ${favPicker()}
@@ -4180,6 +4823,7 @@ function render() {
       ${walkFlash()}
       ${voiceOverlay()}
       ${toastHtml()}
+      ${roomWalkPill()}
     </div>`;
   liveSheetId = state.sheetDevice;
   playJemmVideos();
@@ -4247,20 +4891,53 @@ document.addEventListener("click", (e) => {
   const act = t.dataset.act;
   if (act === "share-wifi") go("connecting", { connectStep: 0 });
   if (act === "enter") finishOnboard();
-  if (act === "voice") patch({ voice: !state.voice, voiceSpoken: "", voiceReply: "" });
-  if (act === "voice-close") patch({ voice: false, voiceSpoken: "", voiceReply: "" });
-  if (act === "voice-hint") {
-    const txt = t.textContent.trim();
-    const VREPLY = {
-      "Dim the lights": "Dimming the lights in this room to 40%.",
-      "Evening scene": "Running the evening scene now.",
-      "Play something": "Playing music in this room.",
-      "Arm the cameras": "All cameras armed.",
-      "Turn off all lights": "Turning off all lights in the house.",
-    };
-    patch({ voiceSpoken: txt, voiceReply: VREPLY[txt] || "Got it." });
+  if (act === "voice") patch({ voice: !state.voice, jemmExpanded: false });
+  if (act === "voice-close") patch({ voice: false, jemmExpanded: false });
+  if (act === "voice-expand") patch({ jemmExpanded: !state.jemmExpanded });
+  if (act === "voice-mute") patch({ jemmMuted: !state.jemmMuted });
+  if (act === "voice-listen") {
+    if (state.jemmMuted) { flash("Jemm is muted. Tap the speaker icon to unmute."); return; }
+    // Simulate Jemm listening
+    const room = hereRoom();
+    const hint = room ? `Listening in ${room.name}…` : "Listening…";
+    flash(hint);
   }
-  if (act === "voice-keyboard") flash("Keyboard input coming soon.");
+  if (act === "voice-hint" || act === "voice-text-submit") {
+    let txt = "";
+    if (act === "voice-hint") {
+      txt = (t.dataset.hint || t.textContent).trim();
+    } else {
+      const input = document.getElementById("jemm-text");
+      txt = input ? input.value.trim() : "";
+      if (!txt) return;
+    }
+    const VREPLY = {
+      "Dim the lights": "Sure — dimming to 40%.",
+      "Evening scene": "Evening scene is running.",
+      "Play something": "Playing in this room now.",
+      "Arm cameras": "All cameras armed.",
+      "Arm the cameras": "All cameras armed.",
+      "Turn off all lights": "Lights off across the house.",
+      "How's the house?": "All good. 3 lights on, cameras armed, doors locked.",
+      "Who's home?": "Alex and Maya are home.",
+      "What's the temperature?": `It's ${hereRoom() ? "72°" : "70°"} in here right now.`,
+    };
+    const reply = VREPLY[txt] || "On it.";
+    const prev = state.voiceHistory || [];
+    const next = [...prev, { role: "user", text: txt }, { role: "jemm", text: reply }];
+    patch({ voiceHistory: next });
+    // Scroll thread to bottom after render
+    setTimeout(() => {
+      const thread = document.getElementById("jemm-thread");
+      if (thread) thread.scrollTop = thread.scrollHeight;
+      const input = document.getElementById("jemm-text");
+      if (input) input.value = "";
+    }, 30);
+  }
+  if (act === "voice-keyboard") {
+    const input = document.getElementById("jemm-text");
+    if (input) { input.focus(); }
+  }
   if (act === "dismiss-coach") patch({ coach: false });
   if (act === "dismiss-night-card") patch({ nightCardDismissed: true });
   if (act === "clear-peek") patch({ viewingRoom: null });
@@ -4275,6 +4952,37 @@ document.addEventListener("click", (e) => {
   if (act === "set-home-bg") patchLive({ homeBg: normalizeHomeBg(t.dataset.value) });
   if (act === "set-card-tone") patchLive({ cardTone: normalizeCardTone(t.dataset.value) });
   if (act === "set-surface") patchLive({ surfaceStyle: normalizeSurface(t.dataset.value) });
+  if (act === "set-device-detail-style") patch({ deviceDetailStyle: t.dataset.value });
+  if (act === "set-scene-detail-style") patch({ sceneDetailStyle: t.dataset.value });
+  if (act === "peek-device-open") {
+    patch({ peekDeviceId: t.dataset.device });
+    return;
+  }
+  if (act === "peek-device-back") {
+    patch({ peekDeviceId: null });
+    return;
+  }
+  if (act === "walk-next") {
+    const app = document.getElementById("app");
+    if (app) app.classList.add("is-walk-blur");
+    setTimeout(() => {
+      walkNext();
+      if (app) setTimeout(() => app.classList.remove("is-walk-blur"), 120);
+    }, 180);
+    return;
+  }
+  if (act === "walk-prev") {
+    const ids = rooms().map((r) => r.id);
+    const i = Math.max(0, ids.indexOf(state.presence));
+    const prevId = ids[(i - 1 + ids.length) % ids.length];
+    const app = document.getElementById("app");
+    if (app) app.classList.add("is-walk-blur");
+    setTimeout(() => {
+      setPresence(prevId);
+      if (app) setTimeout(() => app.classList.remove("is-walk-blur"), 120);
+    }, 180);
+    return;
+  }
   if (act === "set-spacing") patchLive({ spacing: normalizeSpacing(t.dataset.value) });
   if (act === "set-view-as") patch({ viewAs: t.dataset.value }, "live");
   if (act === "set-preview-dock") patch({ previewDock: normalizePreviewDock(t.dataset.value), previewMenu: true });
@@ -4343,6 +5051,26 @@ document.addEventListener("click", (e) => {
     if (state.screen !== "home") go("home");
   }
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
+  if (act === "set-room-tab") patch({ roomTab: t.dataset.tab });
+  if (act === "room-photo-sheet") patch({ roomPhotoSheet: t.dataset.room });
+  if (act === "close-room-photo") patch({ roomPhotoSheet: null });
+  if (act === "open-wake-word") patch({ wakeWordSheet: true });
+  if (act === "close-wake-word") patch({ wakeWordSheet: false });
+  if (act === "set-wake-word") {
+    const id = el.dataset.id;
+    if (id === "custom") {
+      const custom = prompt("Enter your wake phrase:", state.wakeWord || "Hey Jemm");
+      if (custom && custom.trim()) patch({ wakeWord: custom.trim(), wakeWordSheet: false });
+    } else {
+      patch({ wakeWord: el.dataset.value, wakeWordSheet: false });
+    }
+    flash(`Wake word set to "${state.wakeWord || el.dataset.value}"`);
+    return;
+  }
+  if (act === "room-photo-upload" || act === "room-photo-ai") {
+    flash(act === "room-photo-ai" ? "Generating room photo…" : "Photo picker coming soon");
+    patch({ roomPhotoSheet: null });
+  }
   if (act === "set-kind") {
     if (state.screen === "home" && t.dataset.kind === "camera") {
       go("devices", { deviceKind: t.dataset.kind, deviceBack: "home" });
@@ -4354,29 +5082,59 @@ document.addEventListener("click", (e) => {
     if (state.screen === "device") go(state.deviceBack || "home");
     else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
   }
-  if (act === "close-scene") patch({ sheetScene: null });
-  if (act === "go-scene") {
+  if (act === "close-scene") patch({ sheetScene: null, sideScene: null });
+  if (act === "go-scene" || act === "scene-more") {
     const roomId = t.dataset.room;
     const sceneId = t.dataset.scene;
-    if (roomId && sceneId) go("scene", { viewingRoom: roomId, viewingScene: sceneId, sceneBack: "scenes" });
-  }
-  if (act === "scene-more") {
-    const roomId = t.dataset.room;
-    const sceneId = t.dataset.scene;
-    if (roomId && sceneId) go("scene", { viewingRoom: roomId, viewingScene: sceneId, sceneBack: "scenes" });
+    if (!roomId || !sceneId) return;
+    const style = state.sceneDetailStyle || "sheet";
+    if (style === "page") {
+      go("scene", { viewingRoom: roomId, viewingScene: sceneId, sceneBack: "scenes" });
+    } else if (style === "side") {
+      patch({ sideScene: { roomId, id: sceneId }, sheetScene: null });
+    } else {
+      patch({ sheetScene: { roomId, id: sceneId }, sideScene: null });
+    }
   }
   if (act === "run-scene") {
-    const roomId = state.sheetScene?.roomId || state.viewingRoom;
-    const sceneId = state.sheetScene?.id || state.viewingScene;
+    const roomId = t.dataset.room || state.sheetScene?.roomId || state.sideScene?.roomId || state.viewingRoom;
+    const sceneId = t.dataset.scene || state.sheetScene?.id || state.sideScene?.id || state.viewingScene;
     if (roomId && sceneId) runScene(roomId, sceneId);
   }
   if (act === "run-device-scene") runScene(t.dataset.room, t.dataset.scene, { keepSheet: true });
   if (act === "set-sheet-tab") patch({ sheetTab: t.dataset.tab });
+  if (act === "add-scene-trigger") {
+    const key = t.dataset.key;
+    const phrase = prompt("Add trigger phrase (what you say to Jemm):", "");
+    if (!phrase?.trim()) return;
+    const cur = state.sceneTriggers?.[key] || [];
+    patch({ sceneTriggers: { ...state.sceneTriggers, [key]: [...cur, phrase.trim().toLowerCase()] } });
+  }
+  if (act === "jemm-suggest-triggers") {
+    const key = t.dataset.key;
+    const suggestions = ["lights low", "set the mood", "quiet mode"];
+    const cur = state.sceneTriggers?.[key] || [];
+    const next = [...new Set([...cur, ...suggestions])];
+    patch({ sceneTriggers: { ...state.sceneTriggers, [key]: next } });
+    flash("Jemm added 3 trigger suggestions.");
+  }
+  if (act === "jemm-suggest-scene") {
+    flash("Jemm is thinking about improvements for this scene…");
+  }
+  if (act === "edit-scene-action") {
+    const deviceId = t.dataset.device;
+    if (deviceId) patch({ sheetDevice: deviceId, sheetSize: "full", sheetTab: "controls", sheetScene: null, sideScene: null });
+  }
+  if (act === "edit-scene-name") {
+    const key = t.dataset.key;
+    const val = t.value?.trim();
+    if (key && val) patch({ sceneNames: { ...state.sceneNames, [key]: val } });
+  }
   if (act === "home-peek") {
     openSummary(t.dataset.peekKind);
     return;
   }
-  if (act === "close-peek") patch({ homePeek: null, viewingSummary: state.screen === "summary" ? state.viewingSummary : null });
+  if (act === "close-peek") patch({ homePeek: null, peekDeviceId: null, viewingSummary: state.screen === "summary" ? state.viewingSummary : null });
   if (act === "lights-all" || act === "kind-all") {
     const on = t.dataset.on === "true";
     const kind = t.dataset.kind || "light";
@@ -4391,6 +5149,14 @@ document.addEventListener("click", (e) => {
     const id = t.dataset.device;
     const d = findDevice(id);
     if (id && d) setCtl(id, d.kind === "camera" ? { on: !ctl(d).on, armed: !ctl(d).on } : { on: !ctl(d).on });
+  }
+  if (act === "ctl-kelvin") {
+    const id = t.dataset.device;
+    const val = parseInt(t.dataset.value, 10);
+    if (id && val) setCtl(id, { kelvin: val });
+  }
+  if (act === "edit-device-name") {
+    // handled via input event below
   }
   if (act === "ctl-lock-toggle") {
     const id = t.dataset.device;
@@ -4437,7 +5203,7 @@ document.addEventListener("click", (e) => {
     const req = state.adminRequest;
     if (req) {
       patch({ adminRequest: { ...req, status: "denied" }, jemmMood: "alert" });
-      flash("Denied. Jemm told Mia no.");
+      flash("Request denied.");
       const mia = PEOPLE.find((p) => p.id === "mia");
       if (mia) speakAs({ ...personRecord(mia), tone: "Serious" }, "Sorry Mia. That isn’t allowed. I asked John, and he said no.");
     }
@@ -4455,8 +5221,11 @@ document.addEventListener("click", (e) => {
     patch({ doors, jemmMood: state.adminRequest?.status === "pending" || state.adminRequest?.status === "denied" ? state.jemmMood : (unlocked ? "amber" : "ok") });
     flash(open ? `${id[0].toUpperCase()}${id.slice(1)} locked.` : `${id[0].toUpperCase()}${id.slice(1)} door just unlocked.`);
   }
-  if (act === "toggle-scene-person" && state.viewingRoom && state.viewingScene) {
-    const key = sceneKey(state.viewingRoom, state.viewingScene);
+  if (act === "toggle-scene-person") {
+    const roomId = t.dataset.room || state.viewingRoom;
+    const sceneId = t.dataset.scene || state.viewingScene;
+    if (!roomId || !sceneId) return;
+    const key = sceneKey(roomId, sceneId);
     const cur = state.scenePeople[key] || ["john"];
     const id = t.dataset.person;
     const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
@@ -4558,6 +5327,30 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  // Device name edit
+  if (e.target.dataset.act === "edit-device-name") {
+    const id = e.target.dataset.device;
+    if (id) {
+      state = { ...state, deviceNameEdits: { ...state.deviceNameEdits, [id]: e.target.value } };
+      // Update the devices data name as well for display
+      const d = findDevice(id);
+      if (d) d.name = e.target.value;
+    }
+    return;
+  }
+  // Graphic slider live update
+  if (e.target.classList.contains("peek-graphic-slider__input")) {
+    const id = e.target.dataset.device;
+    const val = Number(e.target.value);
+    if (id) {
+      const fill = e.target.closest(".peek-graphic-slider")?.querySelector(".peek-graphic-slider__fill");
+      const pctLabel = e.target.closest(".peek-graphic-slider")?.querySelector(".peek-graphic-slider__pct");
+      if (fill) fill.style.height = val + "%";
+      if (pctLabel) pctLabel.textContent = val + "%";
+      setCtl(id, { intensity: val, on: val > 0 });
+    }
+    return;
+  }
   if (e.target.dataset.search === "devices") {
     const q = e.target.value.trim().toLowerCase();
     document.querySelectorAll(".device-cat").forEach((cat) => {
@@ -4753,6 +5546,30 @@ document.addEventListener("pointercancel", () => {
 });
 
 document.addEventListener("keydown", (e) => {
+  // Enter in Jemm text input
+  if (e.key === "Enter" && e.target.id === "jemm-text") {
+    e.preventDefault();
+    const txt = e.target.value.trim();
+    if (!txt) return;
+    const VREPLY = {
+      "Dim the lights": "Sure — dimming to 40%.",
+      "Evening scene": "Evening scene is running.",
+      "Play something": "Playing in this room now.",
+      "Arm cameras": "All cameras armed.",
+      "Turn off all lights": "Lights off across the house.",
+      "How's the house?": "All good. 3 lights on, cameras armed, doors locked.",
+      "Who's home?": "Alex and Maya are home.",
+    };
+    const reply = VREPLY[txt] || "On it.";
+    const prev = state.voiceHistory || [];
+    patch({ voiceHistory: [...prev, { role: "user", text: txt }, { role: "jemm", text: reply }] });
+    setTimeout(() => {
+      const thread = document.getElementById("jemm-thread");
+      if (thread) thread.scrollTop = thread.scrollHeight;
+      e.target.value = "";
+    }, 30);
+    return;
+  }
   if (e.key !== "Escape") return;
   if (state.previewMenu) {
     patch({ previewMenu: false });
