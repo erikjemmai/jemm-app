@@ -12,6 +12,7 @@ const PREVIEW_DOCKS = [
 const HOME_BACKGROUNDS = [
   { id: "fill", label: "Fill" },
   { id: "photo", label: "Photo" },
+  { id: "frost", label: "Frost" },
 ];
 const CARD_TONES = [
   { id: "steel", label: "Dark Steel" },
@@ -32,8 +33,23 @@ const HOME_TILES = [
 ];
 const HOME_INTROS = [
   { id: "none", label: "Weather" },
-  { id: "greeting", label: "Greeting" },
   { id: "property", label: "Property" },
+];
+const BOTTOM_NAVS = [
+  { id: "v1", label: "V1" },
+  { id: "v2", label: "V2" },
+  { id: "v3", label: "V3" },
+  { id: "v4", label: "V4" },
+];
+const SURFACE_STYLES = [
+  { id: "matte", label: "Matte" },
+  { id: "glass", label: "Glass" },
+];
+const SPACINGS = [
+  { id: "12", label: "12" },
+  { id: "16", label: "16" },
+  { id: "20", label: "20" },
+  { id: "24", label: "24" },
 ];
 const SUMMARY_TITLES = {
   status: "Home status",
@@ -485,9 +501,12 @@ function blank() {
     previewDock: "sheet",
     homeBg: "fill",
     cardTone: "steel",
+    surfaceStyle: "matte",
+    spacing: "16",
     homeLayout: "v1",
     homeTile: "row",
     homeIntro: "none",
+    bottomNav: "v3",
     homePage: 0,
     viewingDevice: null,
     deviceBack: "home",
@@ -501,6 +520,10 @@ function blank() {
     followMe: true,
     coach: false,
     voice: false,
+    nightCardDismissed: false,
+    nightCardDemo: true,
+    walkAuto: false,
+    viewAs: "admin",
     sheetDevice: null,
     sheetSize: "full",
     sheetTab: "controls",
@@ -516,6 +539,10 @@ function blank() {
     helpChat: false,
     accountSheet: false,
     sheetScene: null,
+    favorites: null,
+    favEdit: false,
+    favAdd: false,
+    favKind: null,
   };
 }
 
@@ -523,15 +550,18 @@ function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || "null");
     if (!saved) return blank();
-    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "" };
+    const next = { ...blank(), ...saved, sheet: null, sheetDevice: null, sheetSize: "full", sheetTab: "controls", sheetScene: null, homePeek: null, voice: false, toast: "", walkTo: null, jemmMenu: false, homeMenu: false, helpSheet: false, helpChat: false, accountSheet: false, previewMenu: false, camReply: "", favEdit: false, favAdd: false, favKind: null, nightCardDismissed: false, nightCardDemo: true };
     next.appLook = normalizeLook(next.appLook);
     next.deviceOpen = normalizeDeviceOpen(next.deviceOpen);
     next.previewDock = normalizePreviewDock(next.previewDock);
     next.homeBg = normalizeHomeBg(next.homeBg);
     next.cardTone = normalizeCardTone(next.cardTone);
+    next.surfaceStyle = normalizeSurface(next.surfaceStyle);
+    next.spacing = normalizeSpacing(next.spacing);
     next.homeLayout = normalizeHomeLayout(next.homeLayout);
     next.homeTile = normalizeHomeTile(next.homeTile);
     next.homeIntro = normalizeHomeIntro(next.homeIntro);
+    next.bottomNav = normalizeBottomNav(next.bottomNav);
     next.homePage = normalizeHomePage(next.homePage, next.homeLayout);
     if (saved.roomsView === "list" && saved.peopleView == null) next.roomsView = "grid";
     return next;
@@ -548,6 +578,19 @@ let learnTimer;
 let sliderLearnTimer;
 let sliderLearn = false;
 let jemmCue = null;
+let walkAutoTimer = null;
+
+function startWalkAuto() {
+  if (walkAutoTimer) clearInterval(walkAutoTimer);
+  walkAutoTimer = setInterval(() => {
+    if (!state.walkAuto) { stopWalkAuto(); return; }
+    walkNext();
+  }, 5000);
+}
+
+function stopWalkAuto() {
+  if (walkAutoTimer) { clearInterval(walkAutoTimer); walkAutoTimer = null; }
+}
 
 const LEARN_KEYS = new Set([
   "ctl", "scene", "presence", "personTone", "personAccent", "personPersonality",
@@ -583,7 +626,7 @@ function startLearnPulse() {
 }
 
 function persist() {
-  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, accountSheet, previewMenu, camReply, ...rest } = state;
+  const { sheet, sheetDevice, sheetSize, sheetTab, sheetScene, homePeek, deviceKind, voice, toast, walkTo, jemmMenu, homeMenu, helpSheet, helpChat, accountSheet, previewMenu, camReply, favEdit, favAdd, favKind, ...rest } = state;
   localStorage.setItem(KEY, JSON.stringify(rest));
 }
 
@@ -600,11 +643,19 @@ function normalizePreviewDock(value) {
 }
 
 function normalizeHomeBg(value) {
-  return value === "photo" ? "photo" : "fill";
+  return value === "photo" ? "photo" : value === "frost" ? "frost" : "fill";
 }
 
 function normalizeCardTone(value) {
   return value === "charcoal" || value === "black" ? value : "steel";
+}
+
+function normalizeSurface(value) {
+  return value === "glass" ? "glass" : "matte";
+}
+
+function normalizeSpacing(value) {
+  return ["12", "16", "20", "24"].includes(String(value)) ? String(value) : "16";
 }
 
 function normalizeHomeLayout(value) {
@@ -616,7 +667,14 @@ function normalizeHomeTile(value) {
 }
 
 function normalizeHomeIntro(value) {
-  return value === "property" || value === "greeting" ? value : "none";
+  return value === "property" ? "property" : "none";
+}
+
+function normalizeBottomNav(value) {
+  if (value === "v1" || value === "v2" || value === "v3" || value === "v4") return value;
+  if (value === "bar") return "v2";
+  if (value === "pill") return "v3";
+  return "v2";
 }
 
 function homePaneCount(layout) {
@@ -641,6 +699,8 @@ function applyTheme() {
   document.documentElement.dataset.theme = state.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.look = normalizeLook(state.appLook);
   document.documentElement.dataset.cardTone = normalizeCardTone(state.cardTone);
+  document.documentElement.dataset.surface = normalizeSurface(state.surfaceStyle);
+  document.documentElement.dataset.spacing = normalizeSpacing(state.spacing);
 }
 
 function patch(next, redraw = true) {
@@ -648,8 +708,79 @@ function patch(next, redraw = true) {
   state = { ...state, ...next };
   persist();
   applyTheme();
-  if (redraw) render();
+  if (redraw === "live") refreshLive();
+  else if (redraw) render();
   if (learn) noticeJemm();
+}
+
+function patchLive(next) {
+  patch({ ...next, previewMenu: true }, "live");
+}
+
+function updateShellChrome(shell) {
+  if (!shell) return;
+  shell.dataset.look = normalizeLook(state.appLook);
+  shell.dataset.deviceOpen = normalizeDeviceOpen(state.deviceOpen);
+  shell.dataset.bottomNav = normalizeBottomNav(state.bottomNav);
+  const bg = normalizeHomeBg(state.homeBg);
+  const needsPhoto = (bg === "photo" || bg === "frost");
+  const photo = state.loggedIn && needsPhoto && homePhoto();
+  shell.classList.toggle("has-photo", Boolean(photo));
+  shell.dataset.homeBg = bg;
+  if (photo) shell.style.setProperty("--home-photo", `url('${photo}')`);
+  else shell.style.removeProperty("--home-photo");
+  if (bg !== "frost") document.documentElement.style.removeProperty("--frost-opacity");
+}
+
+function liveStageHtml() {
+  if (state.screen === "home") {
+    const room = hereRoom();
+    return room ? renderHomeHere(room) : renderHomeAway();
+  }
+  return null;
+}
+
+function liveNavActive() {
+  const screen = state.screen;
+  if (screen === "rooms" || screen === "room" || screen === "scene") return "rooms";
+  if (screen === "profiles" || screen === "profile" || screen === "history") return "profiles";
+  if (screen === "insights") return "insights";
+  if (screen === "more" || screen === "settings" || screen === "jemm" || screen === "help") return "more";
+  if (screen === "devices") return state.deviceBack === "more" ? "more" : "home";
+  return "home";
+}
+
+function refreshLive() {
+  const shell = document.querySelector(".shell");
+  const stage = shell && shell.querySelector(".stage");
+  if (!shell || !stage) {
+    render();
+    return;
+  }
+  const scroll = stage.scrollTop;
+  const sheetBody = document.querySelector(".preview-sheet__body");
+  const sheetScroll = sheetBody ? sheetBody.scrollTop : 0;
+  updateShellChrome(shell);
+  const body = liveStageHtml();
+  if (body) {
+    stage.innerHTML = body;
+    stage.scrollTop = scroll;
+  }
+  const nav = shell.querySelector(".bottom-nav");
+  if (nav) nav.outerHTML = bottomNav(liveNavActive());
+  const chip = shell.querySelector(".preview-menu__btn");
+  if (chip) chip.outerHTML = previewMenuBtn();
+  if (sheetBody) {
+    sheetBody.innerHTML = previewSheetBody();
+    sheetBody.scrollTop = sheetScroll;
+  }
+  const fav = document.querySelector(".sheet--fav");
+  if (state.favAdd) {
+    const favBody = document.querySelector(".fav-picker__body");
+    if (favBody) favBody.innerHTML = favPickerBody();
+  } else if (fav) fav.remove();
+  bindTopnavScroll();
+  playJemmVideos();
 }
 
 function go(screen, extra = {}) {
@@ -668,6 +799,9 @@ function go(screen, extra = {}) {
     helpChat: false,
     accountSheet: false,
     previewMenu: false,
+    favEdit: false,
+    favAdd: false,
+    favKind: null,
     viewingDevice: (screen === "device" || screen === "camera") ? extra.viewingDevice || state.viewingDevice : null,
     ...extra,
   });
@@ -1010,39 +1144,31 @@ function playJemmVideos() {
 }
 
 function previewMenuBtn() {
-  if (!state.loggedIn) return "";
-  const look = normalizeLook(state.appLook).toUpperCase();
-  const open = DEVICE_OPENS.find((o) => o.id === normalizeDeviceOpen(state.deviceOpen));
   return `
-    <button type="button" class="preview-menu__btn ${state.previewMenu ? "is-open" : ""}" data-act="toggle-preview-menu" aria-pressed="${state.previewMenu ? "true" : "false"}" aria-expanded="${state.previewMenu ? "true" : "false"}">
-      Config
-      <span>${look} · ${open ? open.label : "Sheet"}</span>
+    <button type="button" class="preview-menu__btn ${state.previewMenu ? "is-open" : ""}" data-act="toggle-preview-menu" aria-pressed="${state.previewMenu ? "true" : "false"}" aria-expanded="${state.previewMenu ? "true" : "false"}" aria-haspopup="dialog" aria-label="Config">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+        <circle cx="5" cy="4" r="1.5" fill="currentColor"/>
+        <circle cx="10" cy="8" r="1.5" fill="currentColor"/>
+        <circle cx="6" cy="12" r="1.5" fill="currentColor"/>
+      </svg>
     </button>`;
 }
 
-function previewSheet() {
-  if (!state.previewMenu) return "";
+function previewSheetBody() {
   const look = normalizeLook(state.appLook);
   const open = normalizeDeviceOpen(state.deviceOpen);
   const dock = normalizePreviewDock(state.previewDock);
   const bg = normalizeHomeBg(state.homeBg);
   const tone = normalizeCardTone(state.cardTone);
+  const surface = normalizeSurface(state.surfaceStyle);
+  const spacing = normalizeSpacing(state.spacing);
   const home = normalizeHomeLayout(state.homeLayout);
   const tile = normalizeHomeTile(state.homeTile);
   const intro = normalizeHomeIntro(state.homeIntro);
+  const nav = normalizeBottomNav(state.bottomNav);
   return `
-    <div class="sheet sheet--preview ${dock === "side" ? "is-side" : "is-sheet"}" data-act="close-preview">
-      <aside class="sheet__panel preview-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="preview-sheet-title">
-        ${dock === "sheet" ? `
-          <button type="button" class="sheet-grab" data-act="close-preview" aria-label="Dismiss sheet">
-            <span class="handle"></span>
-          </button>` : ""}
-        <header class="preview-sheet__head">
-          <h2 id="preview-sheet-title">Layout test</h2>
-          <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close layout test">${icon("assets/icons/24/close.svg")}</button>
-        </header>
-        <div class="preview-sheet__body">
-          <p class="preview-sheet__hint">Temporary. Switch Home pages, first-view tiles, the greeting, and how a device or summary opens.</p>
+          <p class="preview-sheet__hint">Temporary. Switch Home pages, the bottom nav, tiles, and how a device or summary opens.</p>
           <div class="preview-sheet__block">
             <span>Home</span>
             <div class="preview-sheet__seg" role="group" aria-label="Home layout">
@@ -1050,7 +1176,16 @@ function previewSheet() {
                 <button type="button" class="${home === item.id ? "is-on" : ""}" data-act="set-home-layout" data-value="${item.id}" aria-pressed="${home === item.id ? "true" : "false"}">${item.label}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${home === "v2" ? "One Home page: dark steel status tiles, then scenes and cameras. No device list underneath. Tap a category to see those devices." : "Two Home pages: first is status tiles, scenes, and cameras. Second is devices only."}</p>
+            <p class="preview-sheet__note">${home === "v2" ? "One Home page: dark steel status tiles, then scenes and cameras. No device list underneath. Tap a category to see those devices." : "One Home page with status tiles, scenes, and favorites. View all devices opens a separate page."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Bottom nav</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Bottom nav">
+              ${BOTTOM_NAVS.map((item) => `
+                <button type="button" class="${nav === item.id ? "is-on" : ""}" data-act="set-bottom-nav" data-value="${item.id}" aria-pressed="${nav === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${nav === "v1" ? "Labeled pill: Home, Rooms, Jemm center, Profiles, Menu." : nav === "v2" ? "Labeled pill: Home, Rooms, Jemm center, Profiles, More." : nav === "v3" ? "Josh: Jemm left, 4-icon pill, bars right." : "Icon-only pill with Jemm center — no labels."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>First-view tiles</span>
@@ -1068,7 +1203,7 @@ function previewSheet() {
                 <button type="button" class="${intro === item.id ? "is-on" : ""}" data-act="set-home-intro" data-value="${item.id}" aria-pressed="${intro === item.id ? "true" : "false"}">${item.label}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${intro === "property" ? "Property dropdown sits above the weather." : intro === "greeting" ? "Shows Good morning, John above the weather." : "Wireframe default: city and weather only. No greeting."}</p>
+            <p class="preview-sheet__note">${intro === "property" ? "Property dropdown sits above the weather." : "City and weather only. No greeting."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>App look</span>
@@ -1086,7 +1221,7 @@ function previewSheet() {
                 <button type="button" class="${bg === item.id ? "is-on" : ""}" data-act="set-home-bg" data-value="${item.id}" aria-pressed="${bg === item.id ? "true" : "false"}">${item.label}</button>
               `).join("")}
             </div>
-            <p class="preview-sheet__note">${bg === "photo" ? "Uses this room’s photo under a dark wash." : "Brand wash and ink fill. No photo."}</p>
+            <p class="preview-sheet__note">${bg === "photo" ? "Uses this room’s photo under a dark wash." : bg === "frost" ? "Photo clear at top — blurs as you scroll so UI elements pop from the frosted layer." : "Brand wash and ink fill. No photo."}</p>
           </div>
           <div class="preview-sheet__block">
             <span>Card color</span>
@@ -1096,6 +1231,49 @@ function previewSheet() {
               `).join("")}
             </div>
             <p class="preview-sheet__note">${tone === "black" ? "Black cards sit flush with the ink background." : tone === "charcoal" ? "Charcoal ink #202020 — darker than steel, still a surface." : "Dark Steel #283239 — the brand card fill."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Surface style</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Surface style">
+              ${SURFACE_STYLES.map((item) => `
+                <button type="button" class="${surface === item.id ? "is-on" : ""}" data-act="set-surface" data-value="${item.id}" aria-pressed="${surface === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">${surface === "glass" ? "Cards, tiles, sheets, and nav get a frosted backdrop blur. Needs photo or gradient behind." : "Solid fill surfaces — no blur. Consistent on any background."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Spacing</span>
+            <div class="preview-sheet__seg" role="group" aria-label="Vertical spacing">
+              ${SPACINGS.map((item) => `
+                <button type="button" class="${spacing === item.id ? "is-on" : ""}" data-act="set-spacing" data-value="${item.id}" aria-pressed="${spacing === item.id ? "true" : "false"}">${item.label}</button>
+              `).join("")}
+            </div>
+            <p class="preview-sheet__note">Base vertical gap in px — applied to stacks, card padding, and stage gutters.</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>Presence</span>
+            <div class="cfg-toggle-group">
+              <div class="cfg-toggle-row">
+                <span>Room walk</span>
+                <button class="toggle ${state.walkAuto ? "is-on" : ""}" data-act="toggle-walk-auto" role="switch" aria-checked="${state.walkAuto ? "true" : "false"}" aria-label="Room walk"></button>
+              </div>
+              <div class="cfg-toggle-row">
+                <span>Away mode</span>
+                <button class="toggle ${state.presence === "away" ? "is-on" : ""}" data-act="toggle-away" role="switch" aria-checked="${state.presence === "away" ? "true" : "false"}" aria-label="Away mode"></button>
+              </div>
+            </div>
+            <p class="preview-sheet__note">${state.walkAuto ? "Cycling rooms every 5s — Jemm alerts on each move." : state.presence === "away" ? "Whole-home view active — no room context." : "Tap Room walk to cycle rooms, or Away to test the away view."}</p>
+          </div>
+          <div class="preview-sheet__block">
+            <span>View as</span>
+            <div class="preview-sheet__seg preview-sheet__seg--wrap" role="group" aria-label="View as user">
+              <button type="button" class="${state.viewAs === "admin" ? "is-on" : ""}" data-act="set-view-as" data-value="admin" aria-pressed="${state.viewAs === "admin"}">Admin</button>
+              ${visiblePeople().filter((p) => p.id !== "john").map((p) => `
+                <button type="button" class="${state.viewAs === p.id ? "is-on" : ""}" data-act="set-view-as" data-value="${p.id}" aria-pressed="${state.viewAs === p.id}">${p.name.split(" ")[0]}</button>
+              `).join("")}
+              <button type="button" class="${state.viewAs === "user" ? "is-on" : ""}" data-act="set-view-as" data-value="user" aria-pressed="${state.viewAs === "user"}">Everyday</button>
+            </div>
+            <p class="preview-sheet__note">${state.viewAs === "admin" ? "Admin view — Danger Zone in Settings, full Config access." : state.viewAs === "user" ? "Everyday user — restricted settings, no system controls." : `Viewing as ${viewAsLabel()} — ${viewAsPerson()?.role || "Household"} perspective.`}</p>
           </div>
           <div class="preview-sheet__block">
             <span>This panel</span>
@@ -1114,7 +1292,25 @@ function previewSheet() {
               `).join("")}
             </div>
             <p class="preview-sheet__note">${open === "page" ? "Any device or summary group opens as a full page with a back chevron." : open === "side" ? "Any device or summary group opens as a right sidesheet." : "Any device or summary group opens as a bottom sheet."}</p>
-          </div>
+          </div>`;
+}
+
+function previewSheet() {
+  if (!state.previewMenu) return "";
+  const dock = normalizePreviewDock(state.previewDock);
+  return `
+    <div class="sheet sheet--preview ${dock === "side" ? "is-side" : "is-sheet"}" data-act="close-preview">
+      <aside class="sheet__panel preview-sheet" data-stop role="dialog" aria-modal="true" aria-labelledby="preview-sheet-title">
+        ${dock === "sheet" ? `
+          <button type="button" class="sheet-grab" data-act="close-preview" aria-label="Dismiss sheet">
+            <span class="handle"></span>
+          </button>` : ""}
+        <header class="preview-sheet__head">
+          <h2 id="preview-sheet-title">Layout test</h2>
+          <button type="button" class="icon-btn" data-act="close-preview" aria-label="Close layout test">${icon("assets/icons/24/close.svg")}</button>
+        </header>
+        <div class="preview-sheet__body">
+          ${previewSheetBody()}
         </div>
       </aside>
     </div>`;
@@ -1136,17 +1332,25 @@ function accountPhoto() {
 
 function topnav({ back, mark = true } = {}) {
   const appChrome = state.loggedIn;
+  const roleChip = appChrome && !isAdmin()
+    ? `<div class="view-as-banner" role="status" aria-live="polite">
+        <span class="view-as-banner__dot"></span>
+        Viewing as <strong>${viewAsLabel()}</strong>
+        <button type="button" class="view-as-banner__reset" data-act="set-view-as" data-value="admin" aria-label="Switch back to Admin">Admin</button>
+      </div>`
+    : "";
   return `
     <header class="topnav${appChrome ? " topnav--app" : ""}">
+      ${roleChip}
       <div class="topnav__side">
         ${back ? `<button class="icon-btn" data-go="${back}" aria-label="Back">${chevron("left")}</button>` : appChrome ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>` : previewMenuBtn()}
       </div>
       ${mark && !appChrome ? `<img class="topnav__mark" src="assets/jemm-mark.svg" alt="Jemm" />` : `<span></span>`}
       <div class="topnav__side topnav__side--end">
         ${appChrome
-          ? `<button type="button" class="icon-btn" data-act="toggle-preview-menu" aria-expanded="${state.previewMenu ? "true" : "false"}" aria-haspopup="dialog" aria-label="Layout test">${icon("assets/nav/icon-settings.svg")}</button>
+          ? `${previewMenuBtn()}
           <button type="button" class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/nav/bell.svg", "nav-bell")}</button>`
-          : `${back ? previewMenuBtn() : ""}
+          : `${previewMenuBtn()}
         <button class="icon-btn" data-go="notify" aria-label="Notifications">${icon("assets/icons/16/notifications.svg")}</button>
         <button class="icon-btn" data-act="help" aria-label="Help">${icon("assets/nav/help.svg")}</button>`}
       </div>
@@ -1184,23 +1388,83 @@ function stepper(step, total = 3) {
     </div>`;
 }
 
+function isAudioPlaying(room = hereRoom()) {
+  return devicesOfKind("audio", room).some((d) => ctl(d).on);
+}
+
 function bottomNav(active) {
   const mood = state.jemmMood === "alert" ? "alert" : state.jemmMood === "amber" ? "amber" : "ok";
-  const item = (id, src, onSrc, label) => `
-    <button class="nav-item ${active === id ? "is-on" : ""}" data-go="${id}">
-      ${icon(active === id && onSrc ? onSrc : src)}
-      <span>${label}</span>
+  const nav = normalizeBottomNav(state.bottomNav);
+
+  // Nav item with label (v1 / v2)
+  const item = (id, src, label) => `
+    <button class="nav-item ${active === id ? "is-on" : ""}" data-go="${id}" aria-label="${label}">
+      <span class="nav-item__icon"><img src="${src}" alt="" /></span>
+      <span class="nav-item__label">${label}</span>
     </button>`;
-  return `
-    <nav class="bottom-nav" aria-label="App">
-      ${item("home", "assets/nav/icon-home.svg", "assets/nav/icon-home-on.svg", "Home")}
-      ${item("rooms", "assets/nav/icon-rooms.svg", null, "Rooms")}
-      <button class="nav-jemm ${state.voice ? "is-live" : ""} is-${mood}" data-act="voice" aria-label="Talk to Jemm">
-        ${jemmGlow()}
-        ${jemmFace()}
+
+  // Icon-only item (v3 / v4)
+  const iconItem = (id, src, label) => `
+    <button class="nav-item nav-item--icon ${active === id ? "is-on" : ""}" data-go="${id}" aria-label="${label}">
+      <span class="nav-item__icon"><img src="${src}" alt="" /></span>
+    </button>`;
+
+  const jemmBtn = (cls = "") => `
+    <button class="nav-jemm ${cls} ${state.voice ? "is-live" : ""} is-${mood}" data-act="voice" aria-label="Talk to Jemm">
+      ${jemmGlow()}
+      ${jemmFace()}
+    </button>`;
+
+  // V1: labeled pill — Home | Rooms | Jemm | Profiles | Menu
+  if (nav === "v1") {
+    return `
+    <nav class="bottom-nav is-v1" aria-label="App">
+      ${item("home",     "assets/nav/icon-home-figma.svg",     "Home")}
+      ${item("rooms",    "assets/nav/icon-rooms-figma.svg",    "Rooms")}
+      ${jemmBtn()}
+      ${item("profiles", "assets/nav/icon-profiles-figma.svg", "Profiles")}
+      ${item("more",     "assets/nav/icon-more-dots.svg",      "Menu")}
+    </nav>`;
+  }
+
+  // V2: labeled pill — Home | Rooms | Jemm | Profiles | More
+  if (nav === "v2") {
+    return `
+    <nav class="bottom-nav is-v2" aria-label="App">
+      ${item("home",     "assets/nav/icon-home-figma.svg",     "Home")}
+      ${item("rooms",    "assets/nav/icon-rooms-figma.svg",    "Rooms")}
+      ${jemmBtn()}
+      ${item("profiles", "assets/nav/icon-profiles-figma.svg", "Profiles")}
+      ${item("more",     "assets/nav/icon-more-dots.svg",      "More")}
+    </nav>`;
+  }
+
+  // V3: Josh style — [Jemm left] [icon pill] [bars right]
+  if (nav === "v3") {
+    const live = isAudioPlaying();
+    return `
+    <nav class="bottom-nav is-v3" aria-label="App">
+      ${jemmBtn("nav-jemm--orb")}
+      <div class="bottom-nav__pill">
+        ${iconItem("home",     "assets/nav/icon-home-figma.svg",     "Home")}
+        ${iconItem("rooms",    "assets/nav/icon-rooms-figma.svg",    "Rooms")}
+        ${iconItem("profiles", "assets/nav/icon-profiles-figma.svg", "Profiles")}
+        ${iconItem("more",     "assets/nav/icon-more-dots.svg",      "More")}
+      </div>
+      <button type="button" class="nav-orb ${live ? "is-live" : ""}" data-act="home-peek" data-peek-kind="playing" aria-label="Now playing">
+        <img src="assets/nav/icon-bars.svg" alt="" />
       </button>
-      ${item("profiles", "assets/nav/icon-profiles.svg", "assets/icons/icon-fingerprint.svg", "Profiles")}
-      ${item("more", "assets/nav/icon-settings.svg", null, "More")}
+    </nav>`;
+  }
+
+  // V4: icon-only single pill — Home | Rooms | Jemm | Profiles | More
+  return `
+    <nav class="bottom-nav is-v4" aria-label="App">
+      ${iconItem("home",     "assets/nav/icon-home-figma.svg",     "Home")}
+      ${iconItem("rooms",    "assets/nav/icon-rooms-figma.svg",    "Rooms")}
+      ${jemmBtn()}
+      ${iconItem("profiles", "assets/nav/icon-profiles-figma.svg", "Profiles")}
+      ${iconItem("more",     "assets/nav/icon-more-dots.svg",      "More")}
     </nav>`;
 }
 
@@ -1275,6 +1539,58 @@ function deviceIcon(kind) {
   return ICONS[kind] || ICONS.light;
 }
 
+// ── Device hero helpers ───────────────────────────────────────
+const HERO_IMAGES = {
+  arc: "assets/devices/hero-arc.svg",
+  mic: "assets/devices/hero-mic.svg",
+};
+
+function deviceHeroImage(d) {
+  return HERO_IMAGES[d.kind] || null;
+}
+
+function deviceHeroColor(d, c) {
+  if (!c.on) return "rgba(100,100,100,0.22)";
+  switch (d.kind) {
+    case "light": return c.kelvin < 3500
+      ? "rgba(255, 175, 55, 0.55)"
+      : c.kelvin > 5000 ? "rgba(160, 210, 255, 0.50)" : "rgba(255, 220, 100, 0.50)";
+    case "audio":   return "rgba(110, 80, 255, 0.55)";
+    case "climate": return c.mode === "cool" ? "rgba(59, 158, 255, 0.55)" : c.mode === "heat" ? "rgba(255, 112, 67, 0.55)" : "rgba(0, 255, 136, 0.45)";
+    case "fan":     return "rgba(90, 200, 255, 0.48)";
+    case "camera":  return c.armed ? "rgba(255, 55, 95, 0.50)" : "rgba(100,100,100,0.22)";
+    case "lock":    return !c.locked ? "rgba(255, 95, 80, 0.45)" : "rgba(255, 210, 40, 0.45)";
+    case "shade":   return "rgba(200, 180, 140, 0.40)";
+    case "mic": case "arc": return "rgba(0, 255, 136, 0.52)";
+    default:        return "rgba(0, 255, 136, 0.38)";
+  }
+}
+
+function deviceHero(d, c, { compact = false } = {}) {
+  const heroImg = deviceHeroImage(d);
+  const glowColor = deviceHeroColor(d, c);
+  const isOn = c.on;
+  const statusLabel = isOn ? deviceDetail(d) : "Off";
+  const here = state.presence === d.roomId;
+  return `
+    <div class="device-hero${compact ? " device-hero--compact" : ""}${isOn ? " is-on" : ""}" style="--hero-glow:${glowColor}">
+      <div class="device-hero__ambient" aria-hidden="true"></div>
+      <div class="device-hero__img-wrap">
+        ${heroImg
+          ? `<img class="device-hero__img device-hero__img--hero" src="${heroImg}" alt="" />`
+          : `<div class="device-hero__icon-wrap"><img class="device-hero__icon" src="${deviceIcon(d.kind)}" alt="" /></div>`}
+      </div>
+      <div class="device-hero__meta">
+        <p class="device-hero__room">${d.room}${here ? " · Here" : ""}</p>
+        <h2 class="device-hero__name">${d.name}</h2>
+        <div class="device-hero__status${isOn ? " is-on" : ""}">
+          <span class="device-hero__dot"></span>
+          ${statusLabel}
+        </div>
+      </div>
+    </div>`;
+}
+
 function kindLabel(kind) {
   return KIND_LABEL[kind] || kind;
 }
@@ -1303,7 +1619,7 @@ function dashIcon(src, motion = "") {
 
 function dashTile({ title, meta, src, attrs = "", extra = "", ok = false, selected = false, motion = "" }) {
   return `
-    <button type="button" class="dash-tile ${extra}${selected ? " is-on" : ""}" ${attrs}>
+    <button type="button" class="dash-tile ${extra}${selected ? " is-on" : ""}" ${attrs} data-name="${title.toLowerCase()}">
       ${src ? dashIcon(src, motion) : ""}
       <span class="dash-tile__text">
         <span class="dash-tile__title">${title}</span>
@@ -1312,27 +1628,28 @@ function dashTile({ title, meta, src, attrs = "", extra = "", ok = false, select
     </button>`;
 }
 
+const TOGGLEABLE_KINDS = new Set(["light", "audio", "climate", "fan", "shade", "lock"]);
+
 function deviceCard(d, list) {
   const selected = state.sheetDevice === d.id || state.viewingDevice === d.id;
-  const attrs = `data-device="${d.id}"`;
-  if (list) {
-    return dashTile({
-      title: d.name,
-      meta: deviceDetail(d),
-      src: deviceIcon(d.kind),
-      extra: "dash-tile--row",
-      attrs,
-      selected,
-    });
-  }
-  return dashTile({
-    title: d.name,
-    meta: deviceDetail(d),
-    src: deviceIcon(d.kind),
-    extra: "dash-tile--vert",
-    attrs,
-    selected,
-  });
+  const c = ctl(d);
+  const canToggle = TOGGLEABLE_KINDS.has(d.kind);
+  const inner = `
+    ${dashIcon(deviceIcon(d.kind))}
+    <span class="dash-tile__text">
+      <span class="dash-tile__title">${d.name}</span>
+      <span class="dash-tile__meta">${deviceDetail(d)}</span>
+    </span>`;
+  const powerBtn = canToggle
+    ? `<button type="button" class="dash-tile__power${c.on ? " is-on" : ""}" data-act="quick-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on ? "true" : "false"}"></button>`
+    : "";
+  const tileClass = `dash-tile ${list ? "dash-tile--row" : "dash-tile--vert"}${selected ? " is-on" : ""}`;
+  return `
+    <div class="${tileClass}" data-name="${d.name.toLowerCase()}">
+      <button type="button" class="dash-tile__area" data-device="${d.id}" aria-label="Open ${d.name}"></button>
+      ${inner}
+      ${powerBtn}
+    </div>`;
 }
 
 function kindFilters(kinds, { icons = false } = {}) {
@@ -1390,7 +1707,8 @@ function devicesByRoomHtml() {
         ${body}
       </section>`;
   }).join("");
-  return sections || `<p class="muted">No devices in this category.</p>`;
+  return (sections || `<p class="muted">No devices in this category.</p>`) +
+    `<p class="device-search-empty muted" hidden>No devices match your search.</p>`;
 }
 
 function renderSplash() {
@@ -1834,7 +2152,7 @@ function homeSummaryKpis(room) {
     },
     {
       title: shades.length ? `${shades.length} ${shades.length === 1 ? "Shade" : "Shades"}` : "Shades",
-      meta: shades.length ? `${shadesOpen} open • ${shades.length - shadesOpen} closed` : "None here",
+      meta: !shades.length ? "None here" : shadesOpen === shades.length ? "Open" : shadesOpen === 0 ? "Closed" : "Mixed",
       src: ICONS.shade,
       attrs: `data-act="home-peek" data-peek-kind="shades"`,
     },
@@ -1874,7 +2192,7 @@ function homeSummaryTiles(room, { cameras = true, viewAll = true } = {}) {
     <section class="home-block">
       <div class="home-block__head">
         <h2 class="h2">Summary</h2>
-        ${viewAll ? `<button type="button" class="btn btn--link" data-act="home-page" data-page="${homeDevicesPage()}">View all devices</button>` : ""}
+        ${viewAll ? `<button type="button" class="btn btn--link" data-go="devices">View all devices</button>` : ""}
       </div>
       ${square ? "" : tiles[0]}
       <div class="dash-kpi${square ? " is-square" : ""}">
@@ -1888,11 +2206,7 @@ function homeHero(room, { title, chip = "dot" } = {}) {
   const home = currentHome();
   const away = !room;
   const intro = title || normalizeHomeIntro(state.homeIntro);
-  const heading = intro === "property"
-    ? homeSwitcher({ large: true })
-    : intro === "greeting"
-      ? `<h1 class="home-hello__title">${dayGreeting()}</h1>`
-      : "";
+  const heading = intro === "property" ? homeSwitcher({ large: true }) : "";
   const mark = chip === "pin"
     ? `<svg class="here-chip__pin" viewBox="0 -960 960 960" aria-hidden="true"><path fill="currentColor" d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Z"/></svg>`
     : `<span class="here-chip__dot" aria-hidden="true"></span>`;
@@ -1942,55 +2256,190 @@ function homeScenesBlock(room) {
     </section>`;
 }
 
-function homeFavorites(room) {
-  const cams = camerasIn(room).map((d) => ({
+function seedFavorites() {
+  const cams = rooms().flatMap((r) => r.devices.filter((d) => d.kind === "camera")).slice(0, 3).map((d) => ({ type: "device", id: d.id }));
+  const doors = HOME_DOORS.map((door) => ({ type: "door", id: door.id }));
+  return [...cams, ...doors].slice(0, 6);
+}
+
+function favoriteList() {
+  return Array.isArray(state.favorites) && state.favorites.length ? state.favorites : seedFavorites();
+}
+
+function favKey(item) {
+  return `${item.type}:${item.id}`;
+}
+
+function isFavorite(item) {
+  return favoriteList().some((f) => favKey(f) === favKey(item));
+}
+
+function resolveFavorite(item) {
+  if (item.type === "door") {
+    const door = HOME_DOORS.find((d) => d.id === item.id);
+    if (!door) return null;
+    return {
+      title: `${door.label} door`,
+      meta: (state.doors || {})[door.id] === "unlocked" ? "Unlocked" : "Locked",
+      src: "assets/icons/16/home.svg",
+      photo: "",
+      attrs: state.favEdit ? `data-act="toggle-fav" data-fav-type="door" data-fav-id="${door.id}"` : `data-act="home-peek" data-peek-kind="security"`,
+    };
+  }
+  const d = findDevice(item.id);
+  if (!d) return null;
+  return {
     title: d.name,
     meta: deviceDetail(d),
-    src: deviceIcon("camera"),
-    photo: d.photo,
-    attrs: `data-device="${d.id}"`,
-  }));
-  const doors = HOME_DOORS.map((door) => ({
-    title: `${door.label} door`,
-    meta: (state.doors || {})[door.id] === "unlocked" ? "Unlocked" : "Locked",
-    src: "assets/icons/16/home.svg",
-    attrs: `data-act="home-peek" data-peek-kind="security"`,
-  }));
-  const extras = (room ? room.devices : rooms().flatMap((r) => r.devices))
-    .filter((d) => d.kind !== "camera")
-    .slice(0, 4)
-    .map((d) => ({
-      title: d.name,
-      meta: deviceDetail(d),
-      src: deviceIcon(d.kind),
-      attrs: `data-device="${d.id}"`,
-    }));
-  const items = [...cams, ...doors, ...extras].slice(0, 6);
-  if (!items.length) return "";
+    src: deviceIcon(d.kind),
+    photo: d.photo || "",
+    attrs: state.favEdit ? `data-act="toggle-fav" data-fav-type="device" data-fav-id="${d.id}"` : `data-device="${d.id}"`,
+  };
+}
+
+function favPickerKinds() {
+  const kinds = KIND_ORDER.filter((kind) => devicesOfKind(kind).length);
+  const items = kinds.map((kind) => ({ id: kind, type: "kind", label: KIND_LABEL[kind] || kind, src: deviceIcon(kind) }));
+  items.push({ id: "doors", type: "doors", label: "Doors", src: "assets/icons/16/home.svg" });
+  return items;
+}
+
+function favPickerBody() {
+  const kind = state.favKind;
+  if (!kind) {
+    return `
+      <p class="muted">Pick a type. Tap a device to pin it — it saves as you go.</p>
+      <div class="card list-card">
+        ${favPickerKinds().map((item) => `
+          <button type="button" class="row" data-act="set-fav-kind" data-value="${item.id}">
+            ${icon(item.src, "glyph")}
+            <span class="grow">${item.label}</span>
+            ${chevron("right")}
+          </button>`).join("")}
+      </div>`;
+  }
+  if (kind === "doors") {
+    return `
+      <button type="button" class="btn btn--link" data-act="set-fav-kind" data-value="">All types</button>
+      <div class="card list-card">
+        ${HOME_DOORS.map((door) => {
+          const on = isFavorite({ type: "door", id: door.id });
+          return `
+          <button type="button" class="row ${on ? "is-on" : ""}" data-act="toggle-fav" data-fav-type="door" data-fav-id="${door.id}" aria-pressed="${on ? "true" : "false"}">
+            ${icon("assets/icons/16/home.svg", "glyph")}
+            <span class="grow">${door.label} door</span>
+            <span class="muted">${on ? "Pinned" : "Add"}</span>
+          </button>`;
+        }).join("")}
+      </div>`;
+  }
+  const list = devicesOfKind(kind);
+  return `
+    <button type="button" class="btn btn--link" data-act="set-fav-kind" data-value="">All types</button>
+    <div class="card list-card">
+      ${list.map((d) => {
+        const on = isFavorite({ type: "device", id: d.id });
+        return `
+        <button type="button" class="row ${on ? "is-on" : ""}" data-act="toggle-fav" data-fav-type="device" data-fav-id="${d.id}" aria-pressed="${on ? "true" : "false"}">
+          ${icon(deviceIcon(d.kind), "glyph")}
+          <span class="grow">
+            <strong>${d.name}</strong>
+            <span class="muted" style="display:block;font-size:12px">${d.room}</span>
+          </span>
+          <span class="muted">${on ? "Pinned" : "Add"}</span>
+        </button>`;
+      }).join("") || `<p class="muted">Nothing in this type yet.</p>`}
+    </div>`;
+}
+
+function favPicker() {
+  if (!state.favAdd) return "";
+  return `
+    <div class="sheet sheet--fav is-sheet" data-act="close-fav-add">
+      <aside class="sheet__panel fav-picker" data-stop role="dialog" aria-modal="true" aria-labelledby="fav-picker-title">
+        <button type="button" class="sheet-grab" data-act="close-fav-add" aria-label="Dismiss sheet">
+          <span class="handle"></span>
+        </button>
+        <header class="preview-sheet__head">
+          <h2 id="fav-picker-title">Add to Home</h2>
+          <button type="button" class="icon-btn" data-act="close-fav-add" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
+        </header>
+        <div class="fav-picker__body preview-sheet__body">
+          ${favPickerBody()}
+        </div>
+      </aside>
+    </div>`;
+}
+
+function homeFavorites(room) {
+  const items = favoriteList().map(resolveFavorite).filter(Boolean);
+  const editing = state.favEdit;
   return `
     <section class="home-block">
       <div class="home-block__head">
         <h2 class="h2">Favorites</h2>
-        <button type="button" class="icon-btn" data-act="home-fav-menu" aria-label="Favorites options">${icon("assets/icons/24/more.svg")}</button>
+        <div class="home-block__actions">
+          <button type="button" class="icon-btn" data-act="open-fav-add" aria-label="Add favorite">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M9 5v8M5 9h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <button type="button" class="icon-btn${editing ? " is-on" : ""}" data-act="toggle-fav-edit" aria-label="${editing ? "Done editing" : "Edit favorites"}" aria-pressed="${editing}">
+            ${editing
+              ? `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 9l4 4 6-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+              : `<svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M10.5 3.5l4 4-8 8H2.5v-4l8-8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>`}
+          </button>
+        </div>
       </div>
-      <div class="dash-favs">
-        ${items.map((item) => `
-          <button type="button" class="dash-tile dash-tile--vert dash-tile--fav${item.photo ? " dash-tile--cam" : ""}" ${item.attrs}>
+      ${items.length ? `
+      <div class="dash-favs${editing ? " is-editing" : ""}" id="fav-grid">
+        ${items.map((item, i) => `
+          <div class="dash-tile dash-tile--vert dash-tile--fav${item.photo ? " dash-tile--cam" : ""}${editing ? " is-edit" : ""}"${editing ? ` draggable="true" data-fav-idx="${i}"` : ` ${item.attrs}`} style="${editing ? `animation-delay:${(i % 4) * 0.07}s` : ""}">
             ${item.photo ? `<img class="dash-tile__photo" src="${item.photo}" alt="" />` : ""}
             ${dashIcon(item.src)}
             <span class="dash-tile__text">
               <span class="dash-tile__title">${item.title}</span>
-              <span class="dash-tile__meta">${item.meta}</span>
+              <span class="dash-tile__meta">${editing ? "" : item.meta}</span>
             </span>
-          </button>`).join("")}
-      </div>
+            ${editing ? `<button type="button" class="fav-remove" data-act="toggle-fav" data-fav-type="${favoriteList()[i]?.type}" data-fav-id="${favoriteList()[i]?.id}" aria-label="Remove ${item.title}">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M1 1l8 8M9 1L1 9" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>` : ""}
+          </div>`).join("")}
+      </div>` : `<p class="muted">Pin cameras, doors, or devices you use every day. Nothing extra.</p>`}
     </section>`;
+}
+
+function jemmNightCard() {
+  if (state.nightCardDismissed) return "";
+  const h = new Date().getHours();
+  const isNight = h >= 21 || h < 6 || state.nightCardDemo;
+  if (!isNight) return "";
+  const room = hereRoom();
+  const hint1 = room ? `Evening scene in ${room.name.split(" ")[0]}` : "Good night scene";
+  const hint2 = "Lock all doors";
+  const msg = room
+    ? `You're in the ${room.name.toLowerCase()}. Lights dimmed · Doors locked · Cameras on.`
+    : `You're away. Everything's secure — locks, cameras, and climate on overnight mode.`;
+  return `
+    <div class="jemm-night" role="status">
+      <div class="jemm-night__head">
+        ${jemmFace("jemm-night__face")}
+        <span class="jemm-night__label">Good night.</span>
+        <button class="jemm-night__close" data-act="dismiss-night-card" aria-label="Dismiss">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <p class="jemm-night__msg">${msg}</p>
+      <div class="jemm-night__chips">
+        <button class="chip" data-act="voice-hint" data-hint="${hint1}">${hint1}</button>
+        <button class="chip" data-act="voice-hint" data-hint="${hint2}">${hint2}</button>
+      </div>
+    </div>`;
 }
 
 function homeFirstPane(room, extra = "") {
   const intro = normalizeHomeIntro(state.homeIntro);
   return `
-    ${homeHero(room, { title: intro === "property" ? "property" : intro === "greeting" ? "greeting" : "none", chip: "dot" })}
+    ${homeHero(room, { title: intro === "property" ? "property" : "none", chip: "dot" })}
+    ${jemmNightCard()}
     ${homeSummaryTiles(room, { cameras: false, viewAll: normalizeHomeLayout(state.homeLayout) !== "v2" })}
     ${homeScenesBlock(room)}
     ${homeFavorites(room)}
@@ -2005,9 +2454,8 @@ function homeSimple(room, extra = "") {
 }
 
 function homeDevicesPane(room) {
-  const intro = normalizeHomeIntro(state.homeIntro);
   return `
-    ${homeHero(room, { title: intro === "property" ? "property" : "greeting", chip: "pin" })}
+    ${homeHero(room, { title: "none", chip: "pin" })}
     <section class="home-block">
       <div class="home-block__head">
         <h2 class="h2">Devices</h2>
@@ -2018,20 +2466,11 @@ function homeDevicesPane(room) {
 }
 
 function renderHomeHere(room) {
-  if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(room);
-  return homeDeck([
-    homeFirstPane(room),
-    homeDevicesPane(room),
-  ]);
+  return homeSimple(room);
 }
 
 function renderHomeAway() {
-  const peek = state.viewingRoom ? roomById(state.viewingRoom) : rooms()[0];
-  if (normalizeHomeLayout(state.homeLayout) === "v2") return homeSimple(null, adminRequestCard());
-  return homeDeck([
-    homeFirstPane(null, adminRequestCard()),
-    homeDevicesPane(peek),
-  ]);
+  return homeSimple(null, adminRequestCard());
 }
 
 function coachHtml() {
@@ -2060,12 +2499,32 @@ function walkFlash() {
 
 function renderHome() {
   const room = hereRoom();
-  const simple = normalizeHomeLayout(state.homeLayout) === "v2";
   return `
     ${topnav()}
     ${coachHtml()}
-    <div class="stage stage--home${simple ? " is-simple" : ""}">${room ? renderHomeHere(room) : renderHomeAway()}</div>
+    <div class="stage stage--home is-simple">${room ? renderHomeHere(room) : renderHomeAway()}</div>
     ${bottomNav("home")}`;
+}
+
+function roomMasters(room) {
+  const lights = devicesOfKind("light", room);
+  const shades = devicesOfKind("shade", room);
+  if (!lights.length && !shades.length) return "";
+  const lightVal = lights.length ? Math.round(lights.reduce((sum, d) => sum + Number(ctl(d).intensity || 0), 0) / lights.length) : 0;
+  const shadeVal = shades.length ? Math.round(shades.reduce((sum, d) => sum + Number(ctl(d).pos || 0), 0) / shades.length) : 0;
+  return `
+    <section class="room-masters">
+      ${lights.length ? `
+        <label class="sheet-slider">
+          <span class="sheet-slider__top"><span>Lights</span><em data-live="intensity">${liveFmt("intensity", lightVal)}</em></span>
+          <input type="range" min="0" max="100" value="${lightVal}" data-ctl="intensity" data-ctl-kind="light" data-ctl-room="${room.id}" />
+        </label>` : ""}
+      ${shades.length ? `
+        <label class="sheet-slider">
+          <span class="sheet-slider__top"><span>Shades</span><em data-live="pos">${liveFmt("pos", shadeVal)}</em></span>
+          <input type="range" min="0" max="100" value="${shadeVal}" data-ctl="pos" data-ctl-kind="shade" data-ctl-room="${room.id}" />
+        </label>` : ""}
+    </section>`;
 }
 
 function renderRoom() {
@@ -2086,7 +2545,7 @@ function renderRoom() {
             ? "You’re away. Running a scene still happens in this room."
             : `Looking at ${room.name.toLowerCase()} from ${here.name.toLowerCase()}. This does not move you.`}</p>
       </div>
-      ${presenceBar()}
+      ${roomMasters(room)}
       <section class="stack-sm">
         <h2 class="h2">Scenes</h2>
         ${quickStrip(room)}
@@ -2114,7 +2573,7 @@ function renderScene() {
   const live = state.scene[s.room.id] === s.id;
   const people = visiblePeople();
   const groups = sceneSetGroups(s.sets);
-  const back = state.sceneBack === "home" ? "home" : "room";
+  const back = state.sceneBack === "home" ? "home" : state.sceneBack === "scenes" ? "scenes" : "room";
   return `
     ${topnav({ back })}
     ${jemmStripIf("top")}
@@ -2283,7 +2742,6 @@ function renderRooms() {
         : here
           ? "The room you’re in is marked. Open another room to look around without leaving."
           : "Pick a room to view remotely. Home won’t treat it as ‘here’."}</p>
-      ${presenceBar()}
       ${plan ? floorplanView() : roomStrip()}
     </div>
     ${jemmStripIf("bottom")}
@@ -2294,6 +2752,7 @@ function personRecord(p) {
   const tones = state.personTone || {};
   const accents = state.personAccent || {};
   const personalities = state.personPersonality || {};
+  const listens = state.personListen || {};
   return {
     ...p,
     name: p.nameKey ? state.name : p.name,
@@ -2302,6 +2761,7 @@ function personRecord(p) {
     tone: tones[p.id] || p.tone,
     accent: accents[p.id] || "American",
     personality: personalities[p.id] || p.personality,
+    listen: p.id in listens ? listens[p.id] : p.listen,
     visible: state.personVisible?.[p.id] !== false,
     here: p.id === "john" ? state.presence !== "away" : p.id === "alex" || p.id === "mia",
     room: p.id === "john" ? (hereRoom()?.name || "Away") : p.id === "alex" ? "Kitchen" : p.id === "mia" ? "Bedroom" : "Away",
@@ -2312,6 +2772,22 @@ function personRecord(p) {
 
 function visiblePeople() {
   return PEOPLE.filter((p) => !state.personGone?.[p.id]).map(personRecord).filter((p) => p.visible || p.role === "Admin");
+}
+
+function isAdmin() {
+  return state.viewAs === "admin";
+}
+
+function viewAsPerson() {
+  if (state.viewAs === "admin" || state.viewAs === "user") return null;
+  return visiblePeople().find((p) => p.id === state.viewAs) || null;
+}
+
+function viewAsLabel() {
+  if (state.viewAs === "admin") return "Admin";
+  if (state.viewAs === "user") return "Everyday user";
+  const p = viewAsPerson();
+  return p ? p.name.split(" ")[0] : "Admin";
 }
 
 function lightsOnList() {
@@ -2356,6 +2832,45 @@ function renderProfiles() {
     ${bottomNav("profiles")}`;
 }
 
+function renderScenes() {
+  const allScenes = rooms().flatMap((room) =>
+    room.quick.map((q) => {
+      const key = sceneKey(room.id, q.id);
+      const name = state.sceneNames[key] || q.label;
+      const info = SCENE_INFO[q.id] || {};
+      const photo = info.photo || room.photo;
+      const pos = info.pos || "center";
+      const live = state.scene[room.id] === q.id;
+      return { room, q, name, photo, pos, live, key };
+    })
+  );
+  return `
+    ${topnav({ back: "more" })}
+    <div class="stage stage--scenes">
+      <div class="home-head">
+        <h1 class="h1">Scenes</h1>
+        <p class="muted">All scenes across every room. Tap to run or edit.</p>
+      </div>
+      <div class="scenes-list">
+        ${allScenes.map(({ room, q, name, photo, pos, live, key }) => `
+          <button type="button" class="scene-card ${live ? "is-live" : ""}" data-act="go-scene" data-room="${room.id}" data-scene="${q.id}">
+            <img class="scene-card__photo" src="${photo}" alt="" style="object-position:${pos}" />
+            <div class="scene-card__body">
+              <div class="scene-card__info">
+                <span class="scene-card__name">${name}</span>
+                <span class="scene-card__room">${room.name}</span>
+              </div>
+              ${live ? `<span class="scene-card__live">Running</span>` : ""}
+              <button type="button" class="scene-card__more" data-act="scene-more" data-room="${room.id}" data-scene="${q.id}" aria-label="More options">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="2.5" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="13.5" cy="8" r="1.5"/></svg>
+              </button>
+            </div>
+          </button>`).join("")}
+      </div>
+    </div>
+    ${bottomNav("more")}`;
+}
+
 function renderMore() {
   const here = hereRoom();
   return `
@@ -2385,13 +2900,13 @@ function renderMore() {
         ${chevron("right")}
       </button>
       <div class="card list-card">
+        <button class="row" data-go="scenes">${icon("assets/icons/16/devices.svg", "glyph")} <span class="grow">Scenes</span> <span class="muted">${rooms().reduce((n, r) => n + r.quick.length, 0)}</span> ${chevron("right")}</button>
         <button class="row" data-go="devices">${icon("assets/icons/16/devices.svg", "glyph")} <span class="grow">Devices</span> <span class="muted">${rooms().reduce((n, r) => n + r.devices.length, 0)}</span> ${chevron("right")}</button>
         <button class="row" data-go="insights">${icon("assets/icons/16/dashboard.svg", "glyph")} <span class="grow">Insights</span> ${chevron("right")}</button>
         <button class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
         <button class="row" data-act="help">${icon("assets/nav/help.svg", "glyph")} <span class="grow">Help</span> ${chevron("right")}</button>
         <button class="row" data-act="toggle-preview-menu">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Config</span> ${chevron("right")}</button>
       </div>
-      ${presenceBar()}
       <button class="btn btn--secondary" data-act="logout">Log out</button>
     </div>
     ${jemmStripIf("bottom")}
@@ -2419,13 +2934,13 @@ function renderProfile() {
         <h2 class="h2">How Jemm treats ${p.name.split(" ")[0]}</h2>
         <p class="muted">Accent, personality, and tone change how Jemm sounds and what it says.</p>
         <p class="kicker">Accent</p>
-        <div class="quick">
+        <div class="seg" role="group">
           ${ACCENTS.map((a) => `
             <button type="button" class="${p.accent === a ? "is-on" : ""}" data-act="set-accent" data-person="${p.id}" data-accent="${a}">${a}</button>
           `).join("")}
         </div>
         <p class="kicker">Personality</p>
-        <div class="quick">
+        <div class="seg" role="group">
           ${PERSONALITIES.map((n) => `
             <button type="button" class="${p.personality === n ? "is-on" : ""}" data-act="set-personality" data-person="${p.id}" data-personality="${n}">${n}</button>
           `).join("")}
@@ -2433,7 +2948,7 @@ function renderProfile() {
       </section>
       <section class="stack-sm">
         <h2 class="h2">Tone of voice</h2>
-        <div class="quick">
+        <div class="seg" role="group">
           ${Object.keys(TONES).map((tone) => `
             <button type="button" class="${p.tone === tone ? "is-on" : ""}" data-act="set-tone" data-person="${p.id}" data-tone="${tone}">${tone}</button>
           `).join("")}
@@ -2447,7 +2962,10 @@ function renderProfile() {
       <section class="stack-sm">
         <h2 class="h2">Voice and access</h2>
         <div class="card list-card">
-          <div class="row"><span class="grow">Voice</span><span class="muted">${p.listen ? "Listens" : "Silent"}</span></div>
+          <div class="row">
+            <span class="grow">Voice recognition</span>
+            <button class="toggle ${p.listen ? "is-on" : ""}" data-act="toggle-listen" data-person="${p.id}" role="switch" aria-checked="${p.listen}" aria-label="Voice recognition"></button>
+          </div>
           <div class="row"><span class="grow">Wake word</span><span class="muted">${p.wake}</span></div>
           <div class="row"><span class="grow">Language</span><span class="muted">${p.language}</span></div>
         </div>
@@ -2473,8 +2991,14 @@ function renderProfile() {
         </form>` : `
         <section class="stack-sm">
           <h2 class="h2">Admin</h2>
-          <button class="btn btn--secondary" data-act="toggle-visible" data-person="${p.id}">${p.visible ? "Hide from household" : "Show in household"}</button>
-          <button class="btn btn--ghost" data-act="remove-person" data-person="${p.id}">Remove profile</button>
+          <div class="card list-card">
+            <button class="row" data-act="toggle-visible" data-person="${p.id}">
+              <span class="grow">${p.visible ? "Hide from household" : "Show in household"}</span>
+            </button>
+            <button class="row row--destructive" data-act="remove-person" data-person="${p.id}">
+              <span class="grow">Remove profile</span>
+            </button>
+          </div>
         </section>`}
     </div>
     ${jemmStripIf("bottom")}
@@ -2483,10 +3007,15 @@ function renderProfile() {
 
 function renderDevices() {
   const here = hereRoom();
+  const back = state.deviceBack && APP_SCREENS.has(state.deviceBack) && state.deviceBack !== "devices" ? state.deviceBack : "home";
+  const fromHome = back === "home";
   return `
-    ${topnav({ back: "more" })}
+    ${topnav({ back })}
     ${jemmStripIf("top")}
     <div class="stage stack-lg">
+      ${fromHome
+        ? homeDevicesPane(here)
+        : `
       <div class="hero-row">
         <h1 class="h1">Devices</h1>
         ${viewToggle("deviceView", state.deviceView)}
@@ -2494,11 +3023,14 @@ function renderDevices() {
       <p class="muted">${here
         ? `You’re in the ${here.name.toLowerCase()}. Tap a device for volume, intensity, and more.`
         : "You’re away. Tap a device to control it remotely."}</p>
+      <div class="device-search-wrap">
+        <input type="search" class="device-search" placeholder="Search devices…" data-search="devices" aria-label="Search devices" autocomplete="off" />
+      </div>
       ${kindFilters(kindsInHome())}
-      ${devicesByRoomHtml()}
+      ${devicesByRoomHtml()}`}
     </div>
     ${jemmStripIf("bottom")}
-    ${bottomNav("more")}`;
+    ${bottomNav(back === "more" || back === "rooms" ? back : "home")}`;
 }
 
 function renderInsights() {
@@ -2547,30 +3079,44 @@ function renderSettings() {
           <span class="grow">Appearance</span>
           <span class="muted">${state.theme === "light" ? "Light" : "Dark"}</span>
         </button>
-        <button class="row" data-field-toggle="faceId">
+        <div class="row">
           <span class="grow">Face ID</span>
-          <span class="muted">${state.faceId ? "On" : "Off"}</span>
-        </button>
-        <button class="row" data-field-toggle="followMe">
+          <button class="toggle ${state.faceId ? "is-on" : ""}" data-field-toggle="faceId" role="switch" aria-checked="${state.faceId}" aria-label="Face ID"></button>
+        </div>
+        <div class="row">
           <span class="grow">Home follows me</span>
-          <span class="muted">${state.followMe ? "On" : "Off"}</span>
-        </button>
+          <button class="toggle ${state.followMe ? "is-on" : ""}" data-field-toggle="followMe" role="switch" aria-checked="${state.followMe}" aria-label="Home follows me"></button>
+        </div>
         <button class="row" data-go="notify">
           <span class="grow">Notifications</span>
           ${chevron("right")}
         </button>
       </div>
-      <section class="stack-sm">
-        <h2 class="h2">Jemm appears</h2>
-        <div class="quick">
-          <button type="button" class="${state.jemmPlace === "top" ? "is-on" : ""}" data-act="set-jemm-place" data-place="top">Top</button>
-          <button type="button" class="${state.jemmPlace === "bottom" ? "is-on" : ""}" data-act="set-jemm-place" data-place="bottom">Bottom</button>
-        </div>
-        <p class="muted">A slim Jemm row stays on screen, or hide it and use the logo in the nav.</p>
-      </section>
       <p class="muted">${state.followMe
         ? "When you walk into a room, Home shows that room’s summary, devices, and quick options."
         : "Home will stay on whole-house status until you pick a room."}</p>
+      ${isAdmin() ? `
+      <section class="stack-sm">
+        <h2 class="h2 danger-zone__heading">Danger zone</h2>
+        <p class="muted" style="font-size:12px">Admin-only. These actions are permanent.</p>
+        <div class="card list-card danger-zone">
+          <button class="row row--destructive" data-act="danger-clear-history">
+            <span class="grow">Clear activity history</span>
+            <span class="danger-zone__badge">Irreversible</span>
+          </button>
+          <button class="row row--destructive" data-act="danger-reset-scenes">
+            <span class="grow">Reset all scenes to defaults</span>
+            <span class="danger-zone__badge">Irreversible</span>
+          </button>
+          <button class="row row--destructive" data-act="danger-remove-all-guests">
+            <span class="grow">Remove all guest profiles</span>
+          </button>
+          <button class="row row--destructive" data-act="danger-factory-reset">
+            <span class="grow">Factory reset Jemm</span>
+            <span class="danger-zone__badge">Wipes everything</span>
+          </button>
+        </div>
+      </section>` : ""}
     </div>
     ${bottomNav("more")}`;
 }
@@ -2771,6 +3317,116 @@ function sheetChips(field, items, current) {
     </div>`;
 }
 
+/* ── Rich per-type controls ─────────────────────────────────── */
+
+function lightVertSlider(d, c) {
+  const val = c.on ? (c.intensity ?? 100) : 0;
+  const k = c.kelvin ?? 3000;
+  const fillColor = k < 3200 ? "#ffb347" : k < 4800 ? "#fff5d6" : "#d0eaff";
+  return `
+    <div class="light-vslider-wrap">
+      <div class="light-vslider" data-device="${d.id}" aria-label="Intensity">
+        <div class="light-vslider__track">
+          <div class="light-vslider__fill" style="height:${val}%;background:${fillColor}80"></div>
+          <div class="light-vslider__knob" style="bottom:calc(${val}% - 14px)"></div>
+        </div>
+      </div>
+      <span class="light-vslider__val" data-live="intensity">${val}%</span>
+    </div>
+    <div class="sheet-pills" role="group" aria-label="Intensity presets">
+      ${[25,50,75,100].map((v) => `
+        <button type="button" class="${val === v ? "is-on" : ""}" data-act="ctl-num" data-ctl-field="intensity" data-device="${d.id}" data-value="${v}">${v}%</button>
+      `).join("")}
+    </div>`;
+}
+
+function kelvinSwatches(d, c) {
+  const k = c.kelvin ?? 3000;
+  const swatches = [
+    { label: "Warm",     value: 2700, color: "#ffb347" },
+    { label: "Neutral",  value: 4000, color: "#fff5d6" },
+    { label: "Daylight", value: 5600, color: "#d8eeff" },
+    { label: "Cool",     value: 6500, color: "#b8d8ff" },
+  ];
+  return `
+    <div class="kelvin-swatches" role="group" aria-label="Color temperature">
+      ${swatches.map((s) => {
+        const on = Math.abs(k - s.value) < 500;
+        return `<button type="button" class="kelvin-swatch${on ? " is-on" : ""}" data-act="ctl-num" data-ctl-field="kelvin" data-device="${d.id}" data-value="${s.value}" style="--swatch:${s.color}" aria-pressed="${on}" aria-label="${s.label} ${s.value}K"><span class="kelvin-swatch__dot"></span>${s.label}</button>`;
+      }).join("")}
+    </div>`;
+}
+
+function shadeStepper(d, c) {
+  const pos = c.pos ?? 0;
+  const presets = [
+    { label: "Closed", value: 0 },
+    { label: "25%",    value: 25 },
+    { label: "50%",    value: 50 },
+    { label: "Open",   value: 100 },
+  ];
+  return `
+    <div class="pos-stepper">
+      <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="pos" data-device="${d.id}" data-step="-10" data-min="0" data-max="100" aria-label="Close more">↓</button>
+      <div class="pos-stepper__display">
+        <span class="pos-stepper__val" data-live="pos">${pos}</span>
+        <span class="pos-stepper__unit">%</span>
+        <span class="pos-stepper__label">${pos <= 5 ? "Closed" : pos >= 95 ? "Open" : "Partial"}</span>
+      </div>
+      <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="pos" data-device="${d.id}" data-step="10" data-min="0" data-max="100" aria-label="Open more">↑</button>
+    </div>
+    <div class="sheet-pills" role="group" aria-label="Shade presets">
+      ${presets.map((p) => `
+        <button type="button" class="${pos === p.value ? "is-on" : ""}" data-act="ctl-num" data-ctl-field="pos" data-device="${d.id}" data-value="${p.value}">${p.label}</button>
+      `).join("")}
+    </div>`;
+}
+
+function fanStepper(d, c) {
+  const SPEEDS = ["off", "low", "med", "high"];
+  const idx = c.on ? Math.max(1, SPEEDS.indexOf(c.speed || "low")) : 0;
+  const label = SPEEDS[idx];
+  return `
+    <div class="pos-stepper">
+      <button class="pos-stepper__btn" data-act="ctl-fan-step" data-device="${d.id}" data-step="-1" aria-label="Slower">−</button>
+      <div class="pos-stepper__display">
+        <span class="pos-stepper__val" style="text-transform:capitalize">${label}</span>
+        <span class="pos-stepper__label">Speed</span>
+      </div>
+      <button class="pos-stepper__btn" data-act="ctl-fan-step" data-device="${d.id}" data-step="1" aria-label="Faster">+</button>
+    </div>`;
+}
+
+function lockControl(d, c) {
+  const locked = c.locked !== false;
+  const lockedIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="8" y="18" width="24" height="18" rx="4" fill="currentColor" opacity=".15"/><rect x="8" y="18" width="24" height="18" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M14 18v-5a6 6 0 1 1 12 0v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="20" cy="27" r="2.5" fill="currentColor"/></svg>`;
+  const unlockedIcon = `<svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><rect x="8" y="18" width="24" height="18" rx="4" fill="currentColor" opacity=".1"/><rect x="8" y="18" width="24" height="18" rx="4" stroke="currentColor" stroke-width="1.8"/><path d="M14 18v-5a6 6 0 1 1 12 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity=".4"/><circle cx="20" cy="27" r="2.5" fill="currentColor" opacity=".4"/></svg>`;
+  return `
+    <div class="lock-control${locked ? "" : " is-unlocked"}">
+      <div class="lock-control__icon">${locked ? lockedIcon : unlockedIcon}</div>
+      <div class="lock-control__state">
+        <span class="lock-control__label">${locked ? "Locked" : "Unlocked"}</span>
+        <span class="lock-control__name">${d.name}</span>
+      </div>
+      <button class="lock-control__btn${locked ? "" : " is-unlocked"}" data-act="ctl-lock-toggle" data-device="${d.id}" aria-label="${locked ? "Unlock" : "Lock"}">
+        ${locked ? "Unlock" : "Lock"}
+      </button>
+    </div>`;
+}
+
+function cameraControl(d, c) {
+  return `
+    <div class="camera-control${c.on && c.armed ? " is-armed" : ""}">
+      <div class="camera-control__ring">
+        <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" width="64" height="64">
+          <circle cx="32" cy="32" r="28" stroke="${c.on && c.armed ? "#ff3b30" : "rgba(255,255,255,.15)"}" stroke-width="1.5"/>
+          <circle cx="32" cy="32" r="10" fill="${c.on && c.armed ? "#ff3b30" : "rgba(255,255,255,.25)"}"/>
+        </svg>
+      </div>
+      <p class="camera-control__status">${c.on && c.armed ? "Armed · Recording locally" : c.on ? "On · Idle" : "Off"}</p>
+    </div>`;
+}
+
 function sheetNowPlaying(d, c) {
   if (d.kind !== "audio") return "";
   return `
@@ -2826,30 +3482,13 @@ function sheetToolbar(d, c) {
 function sheetControls(d, c) {
   if (d.kind === "light") {
     return `
-      ${sliderRow("Intensity", "intensity", c.intensity, 0, 100)}
-      ${sheetChips("intensity", [
-        { label: "25%", value: 25 },
-        { label: "50%", value: 50 },
-        { label: "75%", value: 75 },
-        { label: "100%", value: 100 },
-      ], c.intensity)}
-      ${sliderRow("Color temperature", "kelvin", c.kelvin, 2200, 6500, 50)}
-      ${sheetChips("kelvin", [
-        { label: "Warm", value: 2700 },
-        { label: "Neutral", value: 4000 },
-        { label: "Cool", value: 5600 },
-      ], c.kelvin)}`;
+      ${lightVertSlider(d, c)}
+      ${kelvinSwatches(d, c)}`;
   }
   if (d.kind === "audio") {
     return `
       ${sheetNowPlaying(d, c)}
-      ${sliderRow("Volume", "volume", c.volume, 0, 100)}
-      ${sheetChips("volume", [
-        { label: "15%", value: 15 },
-        { label: "30%", value: 30 },
-        { label: "50%", value: 50 },
-        { label: "Mute", value: 0 },
-      ], c.volume)}
+      ${volStepper(d, c)}
       <p class="kicker">Source</p>
       <div class="sheet-pills">
         ${["Jazz", "Patio", "Radio", "TV"].map((s) => `
@@ -2857,27 +3496,32 @@ function sheetControls(d, c) {
         `).join("")}
       </div>`;
   }
+  if (d.kind === "mic") {
+    return `
+      ${sliderRow("Listen volume", "volume", c.volume, 0, 100)}
+      ${sliderRow("Speaker volume", "intensity", c.intensity ?? 60, 0, 100)}`;
+  }
   if (d.kind === "climate") {
     return `
-      ${sliderRow("Target", "temp", c.temp, 60, 80)}
-      ${sheetChips("temp", [
-        { label: "66°", value: 66 },
-        { label: "70°", value: 70 },
-        { label: "72°", value: 72 },
-        { label: "76°", value: 76 },
-      ], c.temp)}`;
+      ${climateDial(d, c)}
+      ${sheetModeSeg(c)}`;
   }
   if (d.kind === "shade") {
-    return `${sliderRow("Position", "pos", c.pos, 0, 100)}`;
+    return shadeStepper(d, c);
   }
   if (d.kind === "fan") {
-    return `<p class="muted">Speed is up top, next to On and Off.</p>`;
+    return fanStepper(d, c);
+  }
+  if (d.kind === "lock") {
+    return lockControl(d, c);
   }
   if (d.kind === "camera") {
-    return `<p class="muted">${c.armed && c.on ? "Armed and recording locally." : "Idle. Turn on to arm this camera."}</p>`;
+    return cameraControl(d, c);
   }
-  if (d.kind === "mic") {
-    return `${sliderRow("Listen volume", "volume", c.volume, 0, 100)}`;
+  if (d.kind === "arc") {
+    return `
+      ${sliderRow("Halo brightness", "intensity", c.intensity ?? 60, 0, 100)}
+      ${sliderRow("Speaker volume", "volume", c.volume ?? 50, 0, 100)}`;
   }
   return "";
 }
@@ -2915,12 +3559,15 @@ function accountSheet() {
           </div>
           <button type="button" class="icon-btn" data-act="close-account" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </header>
+        <section class="stack-sm">
+          <h2 class="h2">This home</h2>
+          ${homeSwitcher()}
+        </section>
         <div class="card list-card">
           <button type="button" class="row" data-go="profile" data-person="john">${icon("assets/nav/icon-profiles.svg", "glyph")} <span class="grow">Your profile</span> ${chevron("right")}</button>
-          <button type="button" class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
           <button type="button" class="row" data-go="notify">${icon("assets/nav/bell.svg", "glyph nav-bell")} <span class="grow">Notifications</span> ${chevron("right")}</button>
+          <button type="button" class="row" data-go="settings">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Settings</span> ${chevron("right")}</button>
           <button type="button" class="row" data-act="help">${icon("assets/nav/help.svg", "glyph")} <span class="grow">Help</span> ${chevron("right")}</button>
-          <button type="button" class="row" data-act="toggle-preview-menu">${icon("assets/nav/icon-settings.svg", "glyph")} <span class="grow">Config</span> ${chevron("right")}</button>
         </div>
         <section class="stack-sm">
           <h2 class="h2">Appearance</h2>
@@ -2929,6 +3576,7 @@ function accountSheet() {
             <button type="button" class="${light ? "" : "is-on"}" data-act="set-theme" data-theme="dark" aria-pressed="${light ? "false" : "true"}">Dark</button>
           </div>
         </section>
+        <button type="button" class="btn btn--link" data-act="toggle-preview-menu">Layout test</button>
         <button type="button" class="btn btn--secondary" data-act="logout">Log out</button>
       </aside>
     </div>`;
@@ -3008,16 +3656,14 @@ function devicePanel(d, { page = false } = {}) {
   const scenes = scenesForDevice(d);
   const mode = normalizeDeviceOpen(state.deviceOpen);
   return `
+    ${deviceHero(d, c, { compact: !page })}
     ${sheetToolbar(d, c)}
     <div class="tabs" role="tablist" aria-label="Device">
       <button type="button" class="${tab === "controls" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="controls" role="tab" aria-selected="${tab === "controls" ? "true" : "false"}">Controls</button>
       <button type="button" class="${tab === "scenes" ? "is-on" : ""}" data-act="set-sheet-tab" data-tab="scenes" role="tab" aria-selected="${tab === "scenes" ? "true" : "false"}">Scenes${scenes.length ? ` · ${scenes.length}` : ""}</button>
     </div>
     <div class="sheet-body">
-      ${tab === "scenes" ? sheetScenes(d) : `
-        <p class="sheet-status">${c.on ? deviceDetail(d) : "Off"}</p>
-        ${sheetControls(d, c)}
-      `}
+      ${tab === "scenes" ? sheetScenes(d) : sheetControls(d, c)}
       <p class="muted sheet-hint">${page ? "Back returns to where you were." : mode === "side" ? "Tap the dimmed area to dismiss." : "Pull down to dismiss."}</p>
     </div>`;
 }
@@ -3030,12 +3676,7 @@ function renderDevicePage() {
   return `
     ${topnav({ back })}
     ${jemmStripIf("top")}
-    <div class="stage stack-lg">
-      <div class="home-head">
-        <p class="kicker">${d.room}${here ? " · You’re here" : ""}</p>
-        <h1 class="h1">${d.name}</h1>
-        <p class="muted">Device page test. Same controls as the sheet, with a back chevron.</p>
-      </div>
+    <div class="stage stage--device-page">
       ${devicePanel(d, { page: true })}
     </div>
     ${jemmStripIf("bottom")}
@@ -3056,16 +3697,9 @@ function deviceSheet(keepSheet = false) {
           <button type="button" class="sheet-grab" data-sheet-grab aria-label="Dismiss sheet">
             <span class="handle"></span>
           </button>`}
-        <header class="sheet-head"${side ? "" : " data-sheet-grab"}>
-          <div class="sheet-head__id">
-            <span class="card-icon card-icon--row">${icon(deviceIcon(d.kind))}</span>
-            <div class="grow">
-              <h2 class="h2" id="sheet-name">${d.name}</h2>
-              <p class="muted">${d.room}${here ? " · You’re here" : ""}</p>
-            </div>
-          </div>
+        <div class="sheet-close-row">
           <button type="button" class="icon-btn" data-act="close-sheet" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
-        </header>
+        </div>
         ${devicePanel(d)}
       </aside>
     </div>`;
@@ -3223,11 +3857,11 @@ function peekControlCard(d) {
   }
   return `
     <div class="peek-card ${c.on ? "is-on" : ""}">
-      <button type="button" class="peek-card__name" data-act="ctl-power-toggle" data-device="${d.id}">${d.name}</button>
       <div class="peek-card__row">
         <button type="button" class="peek-card__icon${c.on ? " is-on" : ""}${d.kind === "fan" && c.on ? " is-spin" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}">
           ${icon(deviceIcon(d.kind))}
         </button>
+        <button type="button" class="peek-card__name" data-device="${d.id}" aria-label="Open ${d.name}">${d.name}<span class="peek-card__detail">${c.on ? deviceDetail(d) : "Off"}</span></button>
         ${control}
       </div>
     </div>`;
@@ -3405,17 +4039,9 @@ function jemmPlaceMenu() {
     </div>`;
 }
 
-function jemmStripIf(place) {
-  if (!state.loggedIn || !state.jemmVisible || state.jemmPlace !== place) return "";
-  return `
-    <div class="jemm-strip ${state.voice ? "is-listening" : ""} is-${state.jemmPlace} ${state.jemmMood === "alert" ? "is-alert" : state.jemmMood === "amber" ? "is-amber" : ""}">
-      <button type="button" class="jemm-orb ${state.voice ? "is-live" : ""}" data-act="voice" aria-label="Talk to Jemm">
-        ${jemmGlow()}
-        ${jemmFace()}
-      </button>
-      <p class="jemm-strip__line">${jemmLine()}</p>
-      ${jemmPlaceMenu()}
-    </div>`;
+function jemmStripIf(_place) {
+  // Bottom nav carries the Jemm face on all app screens; strip not needed on mobile.
+  return "";
 }
 
 function voiceOverlay() {
@@ -3424,28 +4050,28 @@ function voiceOverlay() {
   const hints = room
     ? [`Dim the lights`, `Evening scene`, `Play something`]
     : [`How’s the house?`, `Arm the cameras`, `Turn off all lights`];
+  const spoken = state.voiceSpoken || "";
+  const reply = state.voiceReply || "";
   return `
-    <div class="overlay voice-takeover">
-      <div class="voice" data-stop>
-        <button type="button" class="jemm-orb is-live jemm-orb--hero" data-act="voice-close" aria-label="Stop listening">
-          ${jemmGlow()}
-          ${jemmFace()}
-        </button>
-        <h2 class="h1">Listening</h2>
-        <p class="muted">${room
-          ? `You’re in the ${room.name.toLowerCase()}. You don’t need to name the room.`
-          : "You’re away. Ask about the whole house, or name a room."}</p>
+    <div class="overlay voice-overlay" data-act="voice-close">
+      <div class="voice-sheet" data-stop>
+        ${spoken ? `<div class="voice-bubble voice-bubble--user">${spoken}</div>` : ""}
+        ${reply ? `<div class="voice-bubble voice-bubble--jemm"><span class="voice-bubble__icon">${jemmFace()}</span><span>${reply}</span></div>` : ""}
         <div class="voice-hints">
           ${hints.map((h) => `<button type="button" class="chip" data-act="voice-hint">${h}</button>`).join("")}
         </div>
-        <div class="stack-sm" style="width:min(320px,100%)">
-          <p class="kicker">Jemm appears</p>
-          <div class="quick">
-            <button type="button" class="${state.jemmPlace === "top" ? "is-on" : ""}" data-act="set-jemm-place" data-place="top">Top</button>
-            <button type="button" class="${state.jemmPlace === "bottom" ? "is-on" : ""}" data-act="set-jemm-place" data-place="bottom">Bottom</button>
-          </div>
+        <div class="voice-bar">
+          <button type="button" class="voice-bar__side" data-act="voice-keyboard" aria-label="Keyboard">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 9h1M8 9h1M11 9h1M14 9h1M5 12h4M13 12h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
+          <button type="button" class="voice-bar__mic jemm-orb is-live" aria-label="Stop listening">
+            ${jemmGlow()}
+            ${jemmFace()}
+          </button>
+          <button type="button" class="voice-bar__side" data-act="voice-close" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M6 6l8 8M14 6l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </button>
         </div>
-        <button class="btn btn--secondary" data-act="voice-close">Done</button>
       </div>
     </div>`;
 }
@@ -3468,6 +4094,7 @@ function views() {
     scene: renderScene,
     history: renderHistory,
     profiles: renderProfiles,
+    scenes: renderScenes,
     more: renderMore,
     profile: renderProfile,
     devices: renderDevices,
@@ -3507,6 +4134,33 @@ function bindHomePager() {
   }, { passive: true });
 }
 
+function bindTopnavScroll() {
+  const scroller = document.querySelector(".shell.is-app > .stage");
+  if (!scroller) return;
+  const sync = () => {
+    const nav = document.querySelector(".topnav--app");
+    if (nav) nav.classList.toggle("is-scrolled", scroller.scrollTop > 8);
+  };
+  sync();
+  if (scroller._topnavSync) scroller.removeEventListener("scroll", scroller._topnavSync);
+  scroller._topnavSync = sync;
+  scroller.addEventListener("scroll", sync, { passive: true });
+}
+
+function bindFrostScroll() {
+  const scroller = document.querySelector(".shell.is-app > .stage");
+  if (!scroller) return;
+  const sync = () => {
+    if (normalizeHomeBg(state.homeBg) !== "frost") return;
+    const pct = Math.min(scroller.scrollTop / 220, 1);
+    document.documentElement.style.setProperty("--frost-opacity", 0.32 + pct * 0.68);
+  };
+  sync();
+  if (scroller._frostSync) scroller.removeEventListener("scroll", scroller._frostSync);
+  scroller._frostSync = sync;
+  scroller.addEventListener("scroll", sync, { passive: true });
+}
+
 function render() {
   applyTheme();
   const fn = views()[state.screen] || renderWelcome;
@@ -3514,12 +4168,14 @@ function render() {
   const app = document.getElementById("app");
   const keepSheet = Boolean(state.sheetDevice && liveSheetId === state.sheetDevice);
   app.innerHTML = `
-    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""} ${!onboard && normalizeHomeBg(state.homeBg) === "photo" && homePhoto() ? "has-photo" : ""}" data-look="${normalizeLook(state.appLook)}" data-device-open="${normalizeDeviceOpen(state.deviceOpen)}"${ !onboard && normalizeHomeBg(state.homeBg) === "photo" && homePhoto() ? ` style="--home-photo:url('${homePhoto()}')"` : "" }>
+    <div class="shell ${onboard ? "is-onboard" : "is-app"} ${state.loggedIn && state.jemmVisible ? "has-strip" : ""} ${state.jemmPlace === "bottom" ? "is-jemm-bottom" : ""} ${state.jemmMood === "amber" || state.jemmMood === "alert" ? `is-mood-${state.jemmMood}` : ""} ${!onboard && (normalizeHomeBg(state.homeBg) === "photo" || normalizeHomeBg(state.homeBg) === "frost") && homePhoto() ? "has-photo" : ""} ${state.previewMenu ? "has-config-panel" : ""}" data-look="${normalizeLook(state.appLook)}" data-device-open="${normalizeDeviceOpen(state.deviceOpen)}" data-bottom-nav="${normalizeBottomNav(state.bottomNav)}" data-home-bg="${normalizeHomeBg(state.homeBg)}"${ !onboard && (normalizeHomeBg(state.homeBg) === "photo" || normalizeHomeBg(state.homeBg) === "frost") && homePhoto() ? ` style="--home-photo:url('${homePhoto()}')"` : "" }>
+      <div class="frost-layer" aria-hidden="true"></div>
       ${fn()}
       ${deviceSheet(keepSheet)}
       ${homePeekOverlay()}
       ${helpSheet()}
       ${accountSheet()}
+      ${favPicker()}
       ${previewSheet()}
       ${walkFlash()}
       ${voiceOverlay()}
@@ -3528,6 +4184,9 @@ function render() {
   liveSheetId = state.sheetDevice;
   playJemmVideos();
   bindHomePager();
+  bindTopnavScroll();
+  bindFrostScroll();
+  if (state.walkAuto && !walkAutoTimer) startWalkAuto();
   if (jemmCue) startLearnPulse();
 }
 
@@ -3550,6 +4209,7 @@ document.addEventListener("click", (e) => {
     if (t.dataset.sceneId) extra.viewingScene = t.dataset.sceneId;
     if (t.dataset.roomsView) extra.roomsView = t.dataset.roomsView;
     if (t.dataset.go === "scene") extra.sceneBack = state.screen === "home" ? "home" : "room";
+    if (t.dataset.go === "devices") extra.deviceBack = state.screen === "devices" ? (state.deviceBack || "home") : state.screen;
     if (t.dataset.go === "avatar" && state.loggedIn) extra.screen = "avatar";
     go(t.dataset.go, extra);
     return;
@@ -3587,29 +4247,65 @@ document.addEventListener("click", (e) => {
   const act = t.dataset.act;
   if (act === "share-wifi") go("connecting", { connectStep: 0 });
   if (act === "enter") finishOnboard();
-  if (act === "voice") patch({ voice: !state.voice });
-  if (act === "voice-close") patch({ voice: false });
+  if (act === "voice") patch({ voice: !state.voice, voiceSpoken: "", voiceReply: "" });
+  if (act === "voice-close") patch({ voice: false, voiceSpoken: "", voiceReply: "" });
   if (act === "voice-hint") {
-    flash(`“${t.textContent.trim()}”`);
-    patch({ voice: false });
+    const txt = t.textContent.trim();
+    const VREPLY = {
+      "Dim the lights": "Dimming the lights in this room to 40%.",
+      "Evening scene": "Running the evening scene now.",
+      "Play something": "Playing music in this room.",
+      "Arm the cameras": "All cameras armed.",
+      "Turn off all lights": "Turning off all lights in the house.",
+    };
+    patch({ voiceSpoken: txt, voiceReply: VREPLY[txt] || "Got it." });
   }
+  if (act === "voice-keyboard") flash("Keyboard input coming soon.");
   if (act === "dismiss-coach") patch({ coach: false });
+  if (act === "dismiss-night-card") patch({ nightCardDismissed: true });
   if (act === "clear-peek") patch({ viewingRoom: null });
   if (act === "theme") patch({ theme: state.theme === "light" ? "dark" : "light" });
   if (act === "set-theme") patch({ theme: t.dataset.theme === "light" ? "light" : "dark" });
   if (act === "toggle-account") patch({ accountSheet: !state.accountSheet, helpSheet: false, helpChat: false, previewMenu: false, homeMenu: false, jemmMenu: false });
   if (act === "close-account") patch({ accountSheet: false });
-  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false, previewMenu: false, accountSheet: false });
-  if (act === "toggle-preview-menu") patch({ previewMenu: !state.previewMenu, homeMenu: false, jemmMenu: false, accountSheet: false, helpSheet: false });
+  if (act === "toggle-home-menu") patch({ homeMenu: !state.homeMenu, jemmMenu: false, previewMenu: false });
+  if (act === "toggle-preview-menu") patch({ previewMenu: !state.previewMenu, previewDock: "sheet", homeMenu: false, jemmMenu: false, accountSheet: false, helpSheet: false });
   if (act === "close-preview") patch({ previewMenu: false });
-  if (act === "set-app-look") patch({ appLook: normalizeLook(t.dataset.value), previewMenu: true });
-  if (act === "set-home-bg") patch({ homeBg: normalizeHomeBg(t.dataset.value), previewMenu: true });
-  if (act === "set-card-tone") patch({ cardTone: normalizeCardTone(t.dataset.value), previewMenu: true });
+  if (act === "set-app-look") patchLive({ appLook: normalizeLook(t.dataset.value) });
+  if (act === "set-home-bg") patchLive({ homeBg: normalizeHomeBg(t.dataset.value) });
+  if (act === "set-card-tone") patchLive({ cardTone: normalizeCardTone(t.dataset.value) });
+  if (act === "set-surface") patchLive({ surfaceStyle: normalizeSurface(t.dataset.value) });
+  if (act === "set-spacing") patchLive({ spacing: normalizeSpacing(t.dataset.value) });
+  if (act === "set-view-as") patch({ viewAs: t.dataset.value }, "live");
   if (act === "set-preview-dock") patch({ previewDock: normalizePreviewDock(t.dataset.value), previewMenu: true });
-  if (act === "set-home-layout") patch({ homeLayout: normalizeHomeLayout(t.dataset.value), homePage: 0, previewMenu: true });
-  if (act === "set-home-tile") patch({ homeTile: normalizeHomeTile(t.dataset.value), previewMenu: true });
-  if (act === "set-home-intro") patch({ homeIntro: normalizeHomeIntro(t.dataset.value), previewMenu: true });
-  if (act === "home-fav-menu") flash("Favorites.");
+  if (act === "set-bottom-nav") patchLive({ bottomNav: normalizeBottomNav(t.dataset.value) });
+  if (act === "toggle-walk-auto") {
+    const next = !state.walkAuto;
+    if (next) { patch({ walkAuto: true, presence: state.presence === "away" ? rooms()[0]?.id || state.presence : state.presence, previewMenu: true }, "live"); startWalkAuto(); }
+    else { stopWalkAuto(); patchLive({ walkAuto: false }); }
+    return;
+  }
+  if (act === "toggle-away") {
+    if (state.presence !== "away") { stopWalkAuto(); patch({ walkAuto: false, presence: "away", viewingRoom: null, walkTo: null }); }
+    else setPresence(rooms()[0]?.id || state.presence);
+    return;
+  }
+  if (act === "set-home-layout") patchLive({ homeLayout: normalizeHomeLayout(t.dataset.value), homePage: 0 });
+  if (act === "set-home-tile") patchLive({ homeTile: normalizeHomeTile(t.dataset.value) });
+  if (act === "set-home-intro") patchLive({ homeIntro: normalizeHomeIntro(t.dataset.value) });
+  if (act === "home-fav-menu" || act === "toggle-fav-edit") patch({ favEdit: !state.favEdit, favAdd: false }, state.screen === "home" ? "live" : true);
+  if (act === "open-fav-add") patch({ favAdd: true, favKind: null, previewMenu: false, accountSheet: false });
+  if (act === "close-fav-add") patch({ favAdd: false, favKind: null });
+  if (act === "set-fav-kind") {
+    const value = t.dataset.value || null;
+    patch({ favAdd: true, favKind: value && value !== "undefined" ? value : null }, "live");
+  }
+  if (act === "toggle-fav") {
+    const item = { type: t.dataset.favType, id: t.dataset.favId };
+    const list = favoriteList();
+    const next = isFavorite(item) ? list.filter((f) => favKey(f) !== favKey(item)) : [...list, item];
+    patch({ favorites: next, favAdd: state.favAdd, favKind: state.favKind, favEdit: state.favEdit }, state.screen === "home" ? "live" : true);
+  }
   if (act === "home-page") patch({ homePage: normalizeHomePage(t.dataset.page) });
   if (act === "set-device-open") {
     const deviceOpen = normalizeDeviceOpen(t.dataset.value);
@@ -3638,7 +4334,7 @@ document.addEventListener("click", (e) => {
         viewingSummary: summary,
       });
     } else {
-      patch({ deviceOpen, previewMenu: true });
+      patchLive({ deviceOpen });
     }
   }
   if (act === "set-home") setHome(t.dataset.home);
@@ -3648,15 +4344,27 @@ document.addEventListener("click", (e) => {
   }
   if (act === "set-view") patch({ [t.dataset.viewKey]: t.dataset.view });
   if (act === "set-kind") {
-    const extra = { deviceKind: t.dataset.kind };
-    if (state.screen === "home" && t.dataset.kind === "camera") extra.homePage = homeDevicesPage();
-    patch(extra);
+    if (state.screen === "home" && t.dataset.kind === "camera") {
+      go("devices", { deviceKind: t.dataset.kind, deviceBack: "home" });
+      return;
+    }
+    patch({ deviceKind: t.dataset.kind });
   }
   if (act === "close-sheet") {
     if (state.screen === "device") go(state.deviceBack || "home");
     else patch({ sheetDevice: null, viewingDevice: null, sheetSize: "full", sheetTab: "controls" });
   }
   if (act === "close-scene") patch({ sheetScene: null });
+  if (act === "go-scene") {
+    const roomId = t.dataset.room;
+    const sceneId = t.dataset.scene;
+    if (roomId && sceneId) go("scene", { viewingRoom: roomId, viewingScene: sceneId, sceneBack: "scenes" });
+  }
+  if (act === "scene-more") {
+    const roomId = t.dataset.room;
+    const sceneId = t.dataset.scene;
+    if (roomId && sceneId) go("scene", { viewingRoom: roomId, viewingScene: sceneId, sceneBack: "scenes" });
+  }
   if (act === "run-scene") {
     const roomId = state.sheetScene?.roomId || state.viewingRoom;
     const sceneId = state.sheetScene?.id || state.viewingScene;
@@ -3683,6 +4391,34 @@ document.addEventListener("click", (e) => {
     const id = t.dataset.device;
     const d = findDevice(id);
     if (id && d) setCtl(id, d.kind === "camera" ? { on: !ctl(d).on, armed: !ctl(d).on } : { on: !ctl(d).on });
+  }
+  if (act === "ctl-lock-toggle") {
+    const id = t.dataset.device;
+    const d = findDevice(id);
+    if (id && d) setCtl(id, { locked: !ctl(d).locked });
+  }
+  if (act === "ctl-fan-step") {
+    const SPEEDS = ["off", "low", "med", "high"];
+    const id = t.dataset.device;
+    const d = findDevice(id);
+    if (!id || !d) return;
+    const c = ctl(d);
+    const cur = c.on ? Math.max(1, SPEEDS.indexOf(c.speed || "low")) : 0;
+    const next = Math.max(0, Math.min(3, cur + parseInt(t.dataset.step, 10)));
+    setCtl(id, next === 0 ? { on: false } : { on: true, speed: SPEEDS[next] });
+  }
+  if (act === "quick-power-toggle") {
+    const id = t.dataset.device;
+    const d = findDevice(id);
+    if (!id || !d) return;
+    const next = !ctl(d).on;
+    setCtl(id, d.kind === "camera" ? { on: next, armed: next } : { on: next });
+    // Update button state in-place without a full re-render
+    t.classList.toggle("is-on", next);
+    t.setAttribute("aria-pressed", String(next));
+    // Reflect on the parent tile too
+    t.closest(".dash-tile")?.classList.toggle("is-on", state.sheetDevice === id || state.viewingDevice === id);
+    return;
   }
   if (act === "toggle-spotify") {
     const linked = state.spotifyLinked !== false;
@@ -3728,6 +4464,11 @@ document.addEventListener("click", (e) => {
   }
   if (act === "set-accent") patch({ personAccent: { ...state.personAccent, [t.dataset.person]: t.dataset.accent } });
   if (act === "set-personality") patch({ personPersonality: { ...state.personPersonality, [t.dataset.person]: t.dataset.personality } });
+  if (act === "toggle-listen") {
+    const id = t.dataset.person;
+    const cur = state.personListen?.[id] !== false;
+    patch({ personListen: { ...state.personListen, [id]: !cur } });
+  }
   if (act === "toggle-visible") {
     const id = t.dataset.person;
     const visible = state.personVisible?.[id] !== false;
@@ -3776,6 +4517,23 @@ document.addEventListener("click", (e) => {
     if (field === "intensity" && value === 0) extra.on = false;
     if (id) setCtl(id, { [field]: value, ...extra });
   }
+  if (act === "ctl-step") {
+    const field = t.dataset.ctlField;
+    const step = parseFloat(t.dataset.step);
+    const min = parseFloat(t.dataset.min ?? "0");
+    const max = parseFloat(t.dataset.max ?? "100");
+    const id = t.dataset.device || state.sheetDevice;
+    if (!id) return;
+    const d = findDevice(id);
+    if (!d) return;
+    const current = ctl(d)[field] ?? 0;
+    const next = Math.max(min, Math.min(max, current + step));
+    const extra = {};
+    if (field === "temp") extra.on = true;
+    if (field === "volume") extra.on = next > 0;
+    if (field === "intensity") extra.on = next > 0;
+    setCtl(id, { [field]: next, ...extra });
+  }
   if (act === "toggle-jemm-menu") patch({ jemmMenu: !state.jemmMenu, homeMenu: false });
   if (act === "set-jemm-place") patch({ jemmPlace: t.dataset.place, jemmVisible: true, jemmMenu: false });
   if (act === "hide-jemm") patch({ jemmVisible: false, jemmMenu: false });
@@ -3800,15 +4558,48 @@ document.addEventListener("change", (e) => {
 });
 
 document.addEventListener("input", (e) => {
+  if (e.target.dataset.search === "devices") {
+    const q = e.target.value.trim().toLowerCase();
+    document.querySelectorAll(".device-cat").forEach((cat) => {
+      let catVisible = false;
+      cat.querySelectorAll(".dash-tile").forEach((tile) => {
+        const match = !q || (tile.dataset.name || "").includes(q);
+        tile.style.display = match ? "" : "none";
+        if (match) catVisible = true;
+      });
+      cat.style.display = catVisible ? "" : "none";
+    });
+    const sections = document.querySelectorAll(".stage .stack-sm");
+    sections.forEach((sec) => {
+      if (!sec.querySelector(".device-cats")) return;
+      const hasVisible = [...sec.querySelectorAll(".device-cat")].some((c) => c.style.display !== "none");
+      sec.style.display = hasVisible ? "" : "none";
+    });
+    const noResults = document.querySelector(".device-search-empty");
+    const anyVisible = [...document.querySelectorAll(".device-cat")].some((c) => c.style.display !== "none");
+    if (noResults) noResults.hidden = anyVisible || !q;
+    return;
+  }
   const field = e.target.dataset.ctl;
-  const id = e.target.dataset.device || state.sheetDevice;
-  if (!field || !id) return;
+  if (!field) return;
   const val = Number(e.target.value);
-  const d = findDevice(id);
-  if (!d) return;
   const extra = {};
   if (field === "intensity" || field === "volume" || field === "pos" || field === "temp") extra.on = !(field === "volume" && val === 0) && !(field === "intensity" && val === 0);
-  state = { ...state, ctl: { ...state.ctl, [id]: { ...ctl(d), [field]: val, ...extra } } };
+  const kind = e.target.dataset.ctlKind;
+  if (kind) {
+    const room = roomById(e.target.dataset.ctlRoom || state.viewingRoom || state.presence);
+    const next = { ...state.ctl };
+    devicesOfKind(kind, room).forEach((d) => {
+      next[d.id] = { ...ctl(d), [field]: val, ...extra };
+    });
+    state = { ...state, ctl: next };
+  } else {
+    const id = e.target.dataset.device || state.sheetDevice;
+    if (!id) return;
+    const d = findDevice(id);
+    if (!d) return;
+    state = { ...state, ctl: { ...state.ctl, [id]: { ...ctl(d), [field]: val, ...extra } } };
+  }
   persist();
   const live = e.target.closest("label")?.querySelector("[data-live]");
   if (live) live.textContent = liveFmt(field, val);
@@ -3878,6 +4669,34 @@ function clearSheetDrag(panel) {
   sheetDrag = null;
   setTimeout(() => { sheetDragMoved = false; }, 80);
 }
+
+// ── Light vertical slider interaction ────────────────────────
+document.addEventListener("pointerdown", (e) => {
+  const slider = e.target.closest(".light-vslider");
+  if (!slider) return;
+  const id = slider.dataset.device;
+  if (!id) return;
+  e.stopPropagation();
+  slider.setPointerCapture(e.pointerId);
+  const update = (ev) => {
+    const rect = slider.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, 1 - (ev.clientY - rect.top) / rect.height));
+    const val = Math.round(pct * 100);
+    const fill = slider.querySelector(".light-vslider__fill");
+    const knob = slider.querySelector(".light-vslider__knob");
+    const label = document.querySelector(".light-vslider__val[data-live='intensity'], .light-vslider__val");
+    if (fill) { fill.style.height = val + "%"; }
+    if (knob) { knob.style.bottom = "calc(" + val + "% - 14px)"; }
+    if (label) label.textContent = val + "%";
+    setCtl(id, { intensity: val, on: val > 0 });
+  };
+  update(e);
+  const move = (ev) => { if (slider.hasPointerCapture(ev.pointerId)) update(ev); };
+  const up = () => slider.removeEventListener("pointermove", move);
+  slider.addEventListener("pointermove", move);
+  slider.addEventListener("pointerup", up, { once: true });
+  slider.addEventListener("pointercancel", up, { once: true });
+});
 
 document.addEventListener("pointerdown", (e) => {
   const grab = e.target.closest("[data-sheet-grab]");
@@ -3960,6 +4779,44 @@ document.addEventListener("keydown", (e) => {
     return;
   }
   if (state.helpSheet) patch({ helpSheet: false, helpChat: false });
+});
+
+// ── Favorites drag-to-reorder ──────────────────────────────────
+let _dragSrcIdx = null;
+
+document.addEventListener("dragstart", (e) => {
+  const tile = e.target.closest("[data-fav-idx]");
+  if (!tile) return;
+  _dragSrcIdx = parseInt(tile.dataset.favIdx, 10);
+  e.dataTransfer.effectAllowed = "move";
+  tile.classList.add("is-dragging");
+});
+
+document.addEventListener("dragend", (e) => {
+  document.querySelectorAll(".dash-tile--fav.is-dragging, .dash-tile--fav.drag-over")
+    .forEach((el) => el.classList.remove("is-dragging", "drag-over"));
+});
+
+document.addEventListener("dragover", (e) => {
+  const tile = e.target.closest("[data-fav-idx]");
+  if (!tile) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  document.querySelectorAll(".dash-tile--fav.drag-over").forEach((el) => el.classList.remove("drag-over"));
+  tile.classList.add("drag-over");
+});
+
+document.addEventListener("drop", (e) => {
+  const tile = e.target.closest("[data-fav-idx]");
+  if (!tile || _dragSrcIdx === null) return;
+  e.preventDefault();
+  const destIdx = parseInt(tile.dataset.favIdx, 10);
+  if (destIdx === _dragSrcIdx) return;
+  const list = [...favoriteList()];
+  const [moved] = list.splice(_dragSrcIdx, 1);
+  list.splice(destIdx, 0, moved);
+  _dragSrcIdx = null;
+  patch({ favorites: list }, "live");
 });
 
 applyTheme();

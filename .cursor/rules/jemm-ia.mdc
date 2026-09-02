@@ -1,0 +1,42 @@
+---
+description: Jemm IA vs Josh — take the useful patterns, never clone the product
+alwaysApply: true
+---
+
+# Jemm information architecture
+
+Josh.ai screenshots are **IA reference only**. Do not copy Josh visuals, labels, icon set, gradients, all-caps, glass-on-photo styling, or their exact screens.
+
+## Take from Josh (intent, not pixels)
+
+- Home is glanceable: where you are, weather, what's on, then scenes, then a **user-curated** dashboard.
+- Avatar on the left opens a **short property/account menu from the left**.
+- Bottom nav V3: now-playing soundwave | destination pill | Jemm (voice). Jemm stays a face, not a generic mic.
+- Rooms are visual destinations. A room starts with **live whole-room controls** (Off/On + master sliders), then individual tiles.
+- Favorites are chosen, not a dump of whatever is nearby.
+- Scenes page = full-width vertical list, landscape photo cards, "…" overflow per scene. Not a horizontal strip.
+- Now playing = persistent mini-card per zone (album art + track + transport). Multiroom shows one card per zone.
+- Voice = **compact overlay stays over the current screen**, not full-page takeover. Shows spoken text + Jemm response in a sheet. Mic + keyboard + X bar at the bottom.
+- Device detail = focused, large control fills the screen. Light = vertical slider + percentage headline.
+- Devices grid = **only show categories that actually exist** in this property. Never show Keypads, Sensors, or "Josh Devices" if they don't exist.
+- Lights whole-home list = grouped by room/floor, collapse rows, inline OFF/ON, search floats up on scroll.
+
+## Solve Josh's problems in Jemm
+
+- Keep **named destinations** (Home, Rooms, Profiles, More). Do not use cryptic plug / sparkle / keypad icons.
+- Sentence case, Jemm tokens (ink, neon, charcoal). No all-caps industrial chrome.
+- Edits apply **live**. No SAVE / checkbox confirm for lights, favorites, or sliders.
+- Add-favorites is **kinds we actually have**, grouped by room if needed — not a 12-row vendor list.
+- Edit mode is quiet (Edit / Done, small remove). No minus badge on every card as the default look.
+- Do not mix "assign this device to a room" into the profile menu.
+- Do not mix scenes and now-playing in the same scroll.
+- Do not put TV remote and camera on the same device page.
+- Voice overlay keeps the home behind it visible — no full black takeover.
+- The single-device detail screen should have a quick way to see adjacent devices, not strand the user.
+
+## Keep Jemm / Figma
+
+- Presence-aware Home (you're in this room vs away).
+- Summary tiles from the Jemm wireframes — do not replace them with Josh status chips.
+- Device and summary peeks stay Jemm sheets.
+- Config is prototype-only, never a Josh-like product feature.
