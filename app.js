@@ -838,7 +838,9 @@ function openDevice(id, extra = {}) {
     go("camera", { viewingDevice: id, deviceBack: from, sheetDevice: null, camReply: "" });
     return;
   }
-  if (openMode() === "page") {
+  // When on the summary page, always open as bottom sheet (device list stays visible behind)
+  const forceSheet = state.screen === "summary";
+  if (!forceSheet && openMode() === "page") {
     go("device", { viewingDevice: id, deviceBack: from, sheetTab: extra.sheetTab || "controls" });
     return;
   }
@@ -859,21 +861,8 @@ function openDevice(id, extra = {}) {
 function openSummary(kind) {
   if (!kind) return;
   const from = state.screen !== "summary" && APP_SCREENS.has(state.screen) ? state.screen : (state.summaryBack || "home");
-  if (openMode() === "page") {
-    go("summary", { viewingSummary: kind, summaryBack: from, homePeek: null });
-    return;
-  }
-  patch({
-    homePeek: kind,
-    viewingSummary: kind,
-    summaryBack: from,
-    sheetDevice: null,
-    accountSheet: false,
-    helpSheet: false,
-    previewMenu: false,
-    homeMenu: false,
-    jemmMenu: false,
-  });
+  // Always navigate to the summary page — device list is a full page, detail opens as a sheet on top
+  go("summary", { viewingSummary: kind, summaryBack: from, homePeek: null, sheetDevice: null });
 }
 
 function currentHome() {
