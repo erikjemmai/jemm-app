@@ -182,6 +182,8 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+button, a, [role="button"], [data-act], [data-go] { touch-action: manipulation; }
+input, textarea, select { font-size: max(16px, 1em); }
 img { display: block; max-width: 100%; }
 img.chev {
   width: 8px;
