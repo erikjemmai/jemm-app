@@ -30,7 +30,7 @@
   --error: #ff7999;
   --here: #4da6ff;
   --warn: #e8a54b;
-  --page-pad: 20px;
+  --page-pad: 12px;
   --bottom-nav: 88px;
   --top-nav: 64px;
   --icon: 24px;
@@ -96,7 +96,7 @@ html[data-theme="light"] {
 }
 
 /* ── Spacing scale ───────────────────────────────────────────────── */
-html                      { --space-y: 16px; }
+html                      { --space-y: 12px; }
 html[data-spacing="12"]   { --space-y: 12px; }
 html[data-spacing="16"]   { --space-y: 16px; }
 html[data-spacing="20"]   { --space-y: 20px; }
@@ -299,7 +299,7 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   width: 100%;
   max-width: var(--max-app);
   margin: 0 auto;
-  padding: var(--page-pad) var(--page-pad) calc(var(--bottom-nav) + var(--space-y) + 8px);
+  padding: 6px var(--page-pad) calc(var(--bottom-nav) + 6px);
   min-width: 0;
 }
 .shell.is-app > .stage {
@@ -308,7 +308,7 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   overflow-y: auto;
 }
 .shell.is-onboard > .stage {
-  padding-bottom: 32px;
+  padding-bottom: 16px;
 }
 .shell.is-onboard .btn { align-self: center; }
 .shell.is-onboard .btn-row { margin-inline: auto; align-self: center; }
@@ -322,7 +322,7 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   grid-template-columns: auto 1fr auto;
   align-items: center;
   min-height: calc(var(--top-nav) + env(safe-area-inset-top, 0px));
-  padding: calc(10px + env(safe-area-inset-top, 0px)) var(--page-pad) 10px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) var(--page-pad) 8px;
   max-width: var(--max-app);
   width: 100%;
   z-index: 32;
@@ -424,8 +424,7 @@ html[data-theme="light"] .topnav--app.is-scrolled {
   font-size: 10px;
   font-weight: 300;
   color: var(--muted);
-  padding: 20px 0 8px;
-}
+  padding: 4px 0 2px;}
 
 .btn {
   display: inline-flex;
@@ -547,14 +546,14 @@ html[data-theme="light"] .topnav--app.is-scrolled {
   justify-content: center;
   text-align: center;
   gap: 16px;
-  min-height: 280px;
-  padding: 24px 16px;
+  min-height: 200px;
+  padding: 12px;
 }
 
 .choice-row {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 10px;
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
@@ -565,9 +564,9 @@ html[data-theme="light"] .topnav--app.is-scrolled {
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 16px;
-  padding: 24px 20px;
-  min-height: 240px;
+  gap: 10px;
+  padding: 14px 12px;
+  min-height: 140px;
   background: var(--charcoal);
   border: 0.5px solid var(--gray-2);
   border-radius: var(--radius-lg);
@@ -963,9 +962,9 @@ html[data-theme="light"] .nav-orb img { filter: invert(1); }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 260px;
+  min-height: 200px;
   margin: 0 calc(var(--page-pad) * -1);
-  padding: 16px var(--page-pad) 20px;
+  padding: 8px var(--page-pad) 10px;
   gap: 12px;
   background:
     linear-gradient(180deg, rgba(18, 18, 18, 0.15) 0%, rgba(18, 18, 18, 0.55) 48%, var(--ink) 100%),
@@ -1001,9 +1000,9 @@ html[data-theme="light"] .nav-orb img { filter: invert(1); }
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  min-height: 188px;
-  padding: 16px 0 8px;
-  gap: 12px;
+  min-height: 140px;
+  padding: 6px 0 4px;
+  gap: 8px;
 }
 /* walk blur transition — replaces abrupt flash */
 #app .stage {
@@ -1023,7 +1022,7 @@ html[data-theme="light"] .nav-orb img { filter: invert(1); }
   place-items: center;
   background: color-mix(in srgb, var(--wash) 72%, #000);
   text-align: center;
-  padding: 24px;
+  padding: 12px;
 }
 html[data-theme="light"] .walk-flash {
   background: color-mix(in srgb, var(--wash) 82%, var(--white));
@@ -1060,9 +1059,9 @@ html[data-theme="light"] .walk-flash {
   gap: 12px;
 }
 .stat {
-  min-height: 120px;
+  min-height: 90px;
   border-radius: var(--radius-tile);
-  padding: 16px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1152,13 +1151,13 @@ html[data-theme="light"] .walk-flash {
   width: 100%;
   max-width: var(--card-tile);
   min-width: 0;
-  min-height: 125px;
-  padding: 16px;
+  min-height: 90px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 8px;
   text-align: center;
   background: var(--charcoal);
   border: 0.5px solid transparent;
@@ -1364,14 +1363,14 @@ html[data-theme="light"] .walk-flash {
 .scene-modal__hero-copy {
   position: relative;
   z-index: 1;
-  padding: 72px 16px 16px;
+  padding: 48px 12px 8px;
 }
 .scene-modal__hero-copy .kicker { color: var(--neon); }
 .scene-modal__body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px 16px 20px;
+  gap: 8px;
+  padding: 6px 12px 10px;
 }
 .scene-sets {
   list-style: none;
@@ -1590,7 +1589,7 @@ html[data-theme="light"] .toggle.is-on::after { background: #fff; }
   width: min(var(--max-app), 100%);
   height: 50dvh;
   max-height: min(92dvh, 900px);
-  padding: 0 16px max(20px, env(safe-area-inset-bottom));
+  padding: 0 12px max(16px, env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1613,7 +1612,7 @@ html[data-theme="light"] .toggle.is-on::after { background: #fff; }
   height: min(92dvh, 900px);
   max-height: min(92dvh, 900px);
   border-radius: 20px 20px 0 0;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
 }
 @keyframes sheet-up {
   from { transform: translateY(100%); opacity: 1; }
@@ -1655,7 +1654,7 @@ html[data-theme="light"] .toggle.is-on::after { background: #fff; }
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 24px 16px 20px;
+  padding: 10px 12px 8px;
   overflow: hidden;
   /* no extra background — let sheet/page bg show through */
 }
@@ -1905,9 +1904,9 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
 .sheet-hint { font-size: 12px; }
 .modal {
   border-radius: var(--radius-lg);
-  margin: 20px;
-  width: min(362px, calc(100% - 40px));
-  padding: 20px;
+  margin: 12px;
+  width: min(362px, calc(100% - 24px));
+  padding: 14px;
 }
 .handle {
   width: 32px;
@@ -1923,8 +1922,8 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 24px;
+  gap: 16px;
+  padding: 12px;
   text-align: center;
 }
 .voice .orb {
@@ -2061,13 +2060,14 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
 }
 
 @media (min-width: 768px) {
-  :root { --page-pad: 32px; --max-app: 680px; --bottom-nav: 96px; }
-  .stat-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  :root { --page-pad: 16px; --max-app: 480px; --bottom-nav: 88px; }
+  body { background: #0a0a0a; }
+  .stat-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .quick { grid-template-columns: 1fr 1fr; }
-  .scene-grid { grid-template-columns: 1fr 1fr; gap: 16px; }
+  .scene-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .card-grid {
     grid-template-columns: repeat(auto-fill, var(--card-tile));
-    gap: 16px;
+    gap: 12px;
   }
   .card-grid--media {
     grid-template-columns: repeat(2, minmax(0, 280px));
@@ -2076,30 +2076,21 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
   .room-list { grid-template-columns: 1fr 1fr; }
   .avatar-grid { grid-template-columns: repeat(4, 1fr); }
   .device-row, .fav-row, .room-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
     margin: 0;
     padding-inline: 0;
-    gap: 16px;
+    gap: 0;
   }
   .fav { min-width: 0; }
-  .bottom-nav.is-bar { padding-inline: 40px; }
-  .choice { min-height: 280px; padding: 32px 24px; }
-  .h1 { font-size: 32px; }
+  .bottom-nav.is-bar { padding-inline: 24px; }
+  .choice { min-height: 140px; padding: 14px 12px; }
+  .h1 { font-size: 28px; }
 }
 @media (min-width: 1024px) {
-  :root { --page-pad: 40px; --max-app: 1024px; --bottom-nav: 104px; }
-  .stat-grid { grid-template-columns: repeat(4, 1fr); }
-  .quick { grid-template-columns: repeat(4, 1fr); }
-  .scene-grid { grid-template-columns: repeat(4, minmax(0, 220px)); }
-  .card-grid--media { grid-template-columns: repeat(3, minmax(0, 280px)); }
-  .card-stack {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .bottom-nav.is-bar { padding-inline: 48px; }
+  :root { --page-pad: 16px; --max-app: 480px; --bottom-nav: 88px; }
+  .bottom-nav.is-bar { padding-inline: 24px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -2116,19 +2107,19 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
   overflow: hidden;
   min-height: 0;
   padding-inline: 0;
-  padding-bottom: calc(var(--bottom-nav) + 28px);
+  padding-bottom: calc(var(--bottom-nav) + 12px);
 }
 .stage--home.is-simple {
   overflow-x: hidden;
   overflow-y: auto;
   padding-inline: var(--page-pad);
-  padding-bottom: calc(var(--bottom-nav) + 28px);
+  padding-bottom: calc(var(--bottom-nav) + 12px);
 }
 .home-simple {
   display: flex;
   flex-direction: column;
   gap: var(--space-y);
-  padding-bottom: 16px;
+  padding-bottom: 6px;
 }
 .home-pager {
   display: flex;
@@ -5532,14 +5523,14 @@ html[data-look="v3"] .kind-filters button { height: 44px; padding: 0 16px; font-
 html[data-look="v3"] .scene-tile { min-height: 128px; border-radius: 24px; }
 html[data-look="v3"] .scene-tile span { font-size: 18px; }
 html[data-look="v3"] .nav-item { font-size: 12px; min-height: 44px; }
-html[data-look="v3"] .stat { min-height: 136px; padding: 20px; }
+html[data-look="v3"] .stat { min-height: 90px; padding: 10px 12px; }
 html[data-look="v3"] .stat strong { font-size: 32px; }
 html[data-look="v3"] .sheet-pills button,
 
 @media (min-width: 768px) {
   .sheet.sheet--device.is-side {
     place-items: center end;
-    padding: 24px;
+    padding: 12px;
     background: color-mix(in srgb, var(--ink) 42%, transparent);
   }
   .sheet.sheet--device.is-side .sheet__panel {

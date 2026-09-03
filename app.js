@@ -4223,12 +4223,12 @@ function deviceSheet(keepSheet = false) {
             <span class="handle"></span>
           </button>`}
         <div class="sheet-back-row">
-          <button type="button" class="sheet-back-btn" data-act="close-sheet" aria-label="Back">
+          ${state.homePeek ? `<button type="button" class="sheet-back-btn" data-act="close-sheet" aria-label="Back">
             <svg viewBox="0 0 20 20" fill="none" width="18" height="18" aria-hidden="true">
               <path d="M12 5l-5 5 5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>${d.room}</span>
-          </button>
+          </button>` : `<span></span>`}
           <button type="button" class="icon-btn sheet-back-row__close" data-act="close-sheet" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </div>
         ${devicePanel(d, { compact: onSummary })}
