@@ -1774,6 +1774,34 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
   padding: 0 4px 0 0;
   flex-shrink: 0;
 }
+.sheet-back-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 4px;
+  flex-shrink: 0;
+}
+.sheet-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px 6px 6px;
+  border: none;
+  background: transparent;
+  color: var(--neon);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 20px;
+  transition: background .15s;
+}
+.sheet-back-btn:hover,
+.sheet-back-btn:focus-visible {
+  background: rgba(var(--neon-raw), 0.1);
+  outline: 1.5px solid var(--gray-2);
+}
+.sheet-back-btn svg { flex-shrink: 0; color: var(--neon); }
+.sheet-back-row__close { color: var(--muted); }
 
 /* Full device page — no padding-top, hero bleeds into the stage */
 .stage--device-page {
