@@ -1372,7 +1372,7 @@ function accountPhoto() {
   return "assets/nav/avatar.png";
 }
 
-function topnav({ back, mark = true } = {}) {
+function topnav({ back, mark = true, title = "" } = {}) {
   const appChrome = state.loggedIn;
   const roleChip = appChrome && !isAdmin()
     ? `<div class="view-as-banner" role="status" aria-live="polite">
@@ -1403,7 +1403,7 @@ function topnav({ back, mark = true } = {}) {
             ? `<button type="button" class="topnav__avatar" data-act="toggle-account" aria-expanded="${state.accountSheet ? "true" : "false"}" aria-haspopup="dialog" aria-label="Account"><img src="${accountPhoto()}" alt="" /></button>${previewMenuBtn()}`
             : previewMenuBtn()}
       </div>
-      <span></span>
+      <span class="topnav__title">${title}</span>
       <div class="topnav__side topnav__side--end">
         ${appChrome
           ? `${historyBtn}${bellBtn}`
@@ -4158,12 +4158,26 @@ function helpSheet() {
     </div>`;
 }
 
-function devicePanel(d, { page = false } = {}) {
+function devicePanel(d, { page = false, compact = false } = {}) {
   const c = ctl(d);
   const here = state.presence === d.roomId;
   const tab = state.sheetTab === "scenes" ? "scenes" : "controls";
   const scenes = scenesForDevice(d);
   const mode = normalizeDeviceOpen(state.deviceOpen);
+  // Compact = opened from summary list; show only the core control, no tabs
+  if (compact) {
+    return `
+      <div class="sheet-compact-panel">
+        <div class="sheet-compact-panel__header">
+          <span class="sheet-compact-panel__name">${d.name}</span>
+          <span class="sheet-compact-panel__room muted">${d.room}</span>
+        </div>
+        ${sheetToolbar(d, c)}
+        <div class="sheet-compact-panel__ctrl">
+          ${sheetControls(d, c)}
+        </div>
+      </div>`;
+  }
   return `
     ${deviceHero(d, c, { compact: !page })}
     ${sheetToolbar(d, c)}
@@ -4193,12 +4207,14 @@ function renderDevicePage() {
 }
 
 function deviceSheet(keepSheet = false) {
-  if (normalizeDeviceOpen(state.deviceOpen) === "page") return "";
+  // Always render as a sheet when on the summary page (device list → sheet overlay)
+  const onSummary = state.screen === "summary";
+  if (!onSummary && normalizeDeviceOpen(state.deviceOpen) === "page") return "";
   if (!state.sheetDevice) return "";
   const d = findDevice(state.sheetDevice);
   if (!d) return "";
   const here = state.presence === d.roomId;
-  const side = normalizeDeviceOpen(state.deviceOpen) === "side";
+  const side = !onSummary && normalizeDeviceOpen(state.deviceOpen) === "side";
   return `
     <div class="sheet sheet--device ${side ? "is-side" : "is-full"}" data-act="close-sheet">
       <aside class="sheet__panel${keepSheet ? " is-live" : ""}" data-stop role="dialog" aria-modal="true" aria-labelledby="sheet-name">
@@ -4215,7 +4231,7 @@ function deviceSheet(keepSheet = false) {
           </button>
           <button type="button" class="icon-btn sheet-back-row__close" data-act="close-sheet" aria-label="Close">${icon("assets/icons/24/close.svg")}</button>
         </div>
-        ${devicePanel(d)}
+        ${devicePanel(d, { compact: onSummary })}
       </aside>
     </div>`;
 }
@@ -4596,24 +4612,25 @@ function homePeekOverlay() {
 function renderSummary() {
   const kind = state.viewingSummary || "status";
   const info = peekKindInfo(kind);
-  const list = info.deviceKind ? devicesOfKind(info.deviceKind, hereRoom()) : [];
+  const room = hereRoom();
+  const list = info.deviceKind ? devicesOfKind(info.deviceKind, room) : [];
   const back = state.summaryBack && APP_SCREENS.has(state.summaryBack) && state.summaryBack !== "summary" ? state.summaryBack : "home";
+  // Climate with a single thermostat → show the device detail directly on this page
+  const singleClimate = kind === "climate" && list.length === 1;
+  const singleD = singleClimate ? list[0] : null;
+  const singleC = singleD ? ctl(singleD) : null;
   return `
-    ${topnav({ back })}
-    ${jemmStripIf("top")}
-    <div class="stage stack-lg">
-      <div class="dev-category-head">
-        <div class="dev-category-head__left">
-          <span class="dev-category-head__icon">${icon(info.src || info.icon || "assets/icons/24/lights.svg")}</span>
-          <h1 class="dev-category-head__title">${info.title}</h1>
-        </div>
-        ${info.all && list.length ? peekAllSeg(kind, list) : ""}
-      </div>
-      <div class="dev-row-list">
-        ${summaryBody(kind)}
-      </div>
+    ${topnav({ back, title: info.title })}
+    <div class="stage summary-stage">
+      <p class="summary-room-label">${room ? room.name : "Whole home"}</p>
+      ${info.all && list.length && !singleClimate ? `<div class="summary-seg-row">${peekAllSeg(kind, list)}</div>` : ""}
+      ${singleClimate && singleD
+        ? `<div class="summary-climate-hero">
+            ${climateDial(singleD, singleC)}
+            <div class="summary-climate-mode">${sheetModeSeg(singleC)}</div>
+           </div>`
+        : `<div class="dev-row-list">${summaryBody(kind)}</div>`}
     </div>
-    ${jemmStripIf("bottom")}
     ${bottomNav(back === "rooms" || back === "room" ? "rooms" : back === "more" || back === "devices" ? "more" : "home")}`;
 }
 

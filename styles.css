@@ -346,6 +346,18 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
   min-height: 44px;
 }
 .topnav__side--end { justify-content: flex-end; }
+/* Centered title in topnav */
+.topnav__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-1);
+  letter-spacing: -0.01em;
+  text-align: center;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* App nav: starts clear, fades in on scroll */
 .topnav--app {
   transition: background 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
@@ -5779,6 +5791,76 @@ html[data-look="v3"] .sheet-pills button,
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* ── Summary page layout ─────────────────────────────────────────────────── */
+.summary-stage {
+  padding: 12px 20px 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.summary-room-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gray-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0;
+  margin: 0;
+}
+.summary-seg-row {
+  display: flex;
+  justify-content: center;
+}
+.summary-seg-row .small-seg {
+  width: 100%;
+  justify-content: stretch;
+}
+.summary-seg-row .small-seg button {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 13px;
+}
+/* ── Climate hero on summary page ────────────────────────────────────────── */
+.summary-climate-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding-top: 16px;
+}
+.summary-climate-mode {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+/* ── Compact device sheet (from summary) ─────────────────────────────────── */
+.sheet-compact-panel {
+  padding: 0 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.sheet-compact-panel__header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 4px;
+}
+.sheet-compact-panel__name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-1);
+}
+.sheet-compact-panel__room {
+  font-size: 12px;
+  color: var(--gray-3);
+}
+.sheet-compact-panel__ctrl {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* ── Small segmented control (All On / All Off) ──────────────────────────── */
