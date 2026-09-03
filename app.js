@@ -1815,7 +1815,6 @@ function renderLogin() {
   return `
     ${topnav({ back: "welcome" })}
     <div class="stage stack-lg">
-      ${stepper(3)}
       <h1 class="eyebrow">Welcome back</h1>
       <p class="lede">Log in to pick up where you left off. Any email and password works in this demo.</p>
       <form class="stack" data-form="login">
@@ -1842,7 +1841,6 @@ function renderPair() {
   return `
     ${topnav({ back: "welcome" })}
     <div class="stage stack-lg">
-      ${stepper(1)}
       <h1 class="eyebrow">Pair your device</h1>
       <div class="hero-row"><h2 class="h2">Devices found (0)</h2></div>
       <div class="card card--hero">
@@ -1863,7 +1861,6 @@ function renderFound() {
   return `
     ${topnav({ back: "welcome" })}
     <div class="stage stack-lg">
-      ${stepper(1)}
       <h1 class="eyebrow">Pair your device</h1>
       <div class="hero-row">
         <h2 class="h2">Devices found (1)</h2>
@@ -1887,7 +1884,6 @@ function renderWifi() {
   return `
     ${topnav({ back: "found" })}
     <div class="stage stack-lg">
-      ${stepper(1)}
       <h1 class="eyebrow">Share your network</h1>
       <p class="lede">One tap sends this phone’s Wi-Fi to your Arc. No typing.</p>
       <div class="card stack">
@@ -1924,7 +1920,6 @@ function renderConnecting() {
   return `
     ${topnav({ back: "wifi" })}
     <div class="stage stack-lg">
-      ${stepper(1)}
       <h1 class="eyebrow">Connect to network</h1>
       <div class="card card--hero">
         <div class="connect-visual">
@@ -1943,8 +1938,7 @@ function renderAvatar() {
   return `
     ${topnav({ back: state.loggedIn ? "profile" : "welcome" })}
     <div class="stage stack-lg">
-      ${state.loggedIn ? "" : stepper(2)}
-      <h1 class="eyebrow">Jemm’s visual identity</h1>
+            <h1 class="eyebrow">Jemm’s visual identity</h1>
       <p class="lede">You can always adjust this later in the app.</p>
       <h2 class="h3 center">Choose avatar style</h2>
       <div class="avatar-grid">
@@ -1966,7 +1960,6 @@ function renderAccount() {
   return `
     ${topnav({ back: "avatar" })}
     <div class="stage stack-lg">
-      ${stepper(3)}
       <h1 class="eyebrow">Set up your login details</h1>
       <p class="lede">Add an email and password so you can use Jemm on the Arc and in the app.</p>
       <form class="stack" data-form="account">
@@ -1990,7 +1983,6 @@ function renderDone() {
   return `
     ${topnav()}
     <div class="stage stack-lg">
-      ${stepper(3)}
       <div class="card card--hero">
         <div class="done-mark">${jemmFace("jemm-vid--done")}</div>
         <div class="done-copy">
