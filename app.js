@@ -3958,6 +3958,49 @@ function sheetModeSeg(c) {
     </div>`;
 }
 
+function volStepper(d, c) {
+  const vol = c.volume ?? 50;
+  return `
+    <div class="pos-stepper">
+      <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="volume" data-device="${d.id}" data-step="-5" data-min="0" data-max="100" aria-label="Volume down">−</button>
+      <div class="pos-stepper__display">
+        <span class="pos-stepper__val" data-live="volume">${vol}</span>
+        <span class="pos-stepper__unit">%</span>
+        <span class="pos-stepper__label">Volume</span>
+      </div>
+      <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="volume" data-device="${d.id}" data-step="5" data-min="0" data-max="100" aria-label="Volume up">+</button>
+    </div>`;
+}
+
+function climateDial(d, c) {
+  const temp = c.temp ?? 72;
+  const setpoint = c.setpoint ?? temp;
+  return `
+    <div class="climate-stepper">
+      <div class="climate-stepper__ring">
+        <svg viewBox="0 0 120 120" fill="none" width="120" height="120" aria-hidden="true">
+          <circle cx="60" cy="60" r="52" stroke="rgba(255,255,255,.1)" stroke-width="6"/>
+          <circle cx="60" cy="60" r="52" stroke="var(--neon)" stroke-width="6"
+            stroke-linecap="round"
+            stroke-dasharray="${Math.PI * 2 * 52}"
+            stroke-dashoffset="${Math.PI * 2 * 52 * (1 - (setpoint - 60) / 26)}"
+            transform="rotate(-90 60 60)"/>
+        </svg>
+        <div class="climate-stepper__inner">
+          <span class="climate-stepper__val" data-live="setpoint">${setpoint}°</span>
+          <span class="climate-stepper__label">set</span>
+        </div>
+      </div>
+      <div class="climate-stepper__btns">
+        <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="setpoint" data-device="${d.id}" data-step="-1" data-min="60" data-max="86" aria-label="Cooler">−</button>
+        <div class="climate-stepper__actual">
+          <span class="muted">${temp}° actual</span>
+        </div>
+        <button class="pos-stepper__btn" data-act="ctl-step" data-ctl-field="setpoint" data-device="${d.id}" data-step="1" data-min="60" data-max="86" aria-label="Warmer">+</button>
+      </div>
+    </div>`;
+}
+
 function sheetToolbar(d, c) {
   const extra = d.kind === "fan" ? sheetFanSeg(c) : d.kind === "shade" ? sheetShadeSeg(c) : d.kind === "climate" ? sheetModeSeg(c) : "";
   if (!extra) return sheetPower(c);
@@ -5295,6 +5338,7 @@ document.addEventListener("click", (e) => {
     const next = Math.max(min, Math.min(max, current + step));
     const extra = {};
     if (field === "temp") extra.on = true;
+    if (field === "setpoint") extra.on = true;
     if (field === "volume") extra.on = next > 0;
     if (field === "intensity") extra.on = next > 0;
     setCtl(id, { [field]: next, ...extra });

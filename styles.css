@@ -3381,6 +3381,48 @@ html[data-theme="light"] .light-vslider__val { color: var(--ink); }
 html[data-theme="light"] .pos-stepper__btn { background: rgba(0,0,0,.06); border-color: rgba(0,0,0,.14); color: var(--ink); }
 html[data-theme="light"] .pos-stepper__val { color: var(--ink); }
 
+/* ── Climate dial ───────────────────────────────────────────── */
+.climate-stepper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 8px 0;
+}
+.climate-stepper__ring {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+.climate-stepper__inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.climate-stepper__val {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--white);
+}
+.climate-stepper__label { font-size: 11px; color: var(--muted); }
+.climate-stepper__btns {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.climate-stepper__actual {
+  min-width: 80px;
+  text-align: center;
+  font-size: 13px;
+}
+html[data-theme="light"] .climate-stepper__val { color: var(--ink); }
+
 /* ── Lock control ────────────────────────────────────────────── */
 .lock-control {
   display: flex;
