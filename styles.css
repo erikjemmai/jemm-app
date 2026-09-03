@@ -350,7 +350,7 @@ html[data-theme="light"] .shell.is-app.has-photo[data-home-bg="frost"] {
 .topnav__title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--gray-1);
+  color: var(--lite);
   letter-spacing: -0.01em;
   text-align: center;
   flex: 1;
@@ -455,13 +455,15 @@ html[data-theme="light"] .topnav--app.is-scrolled {
   min-width: 140px;
 }
 .btn--secondary:hover { background: color-mix(in srgb, var(--pill) 82%, var(--white)); }
-.btn--ghost {
+.btn--ghost,
+.btn--tertiary {
   background: transparent;
   color: var(--neon);
   border: 1px solid var(--neon);
   font-weight: 600;
 }
-.btn--ghost:hover { background: color-mix(in srgb, var(--neon) 8%, transparent); }
+.btn--ghost:hover,
+.btn--tertiary:hover { background: color-mix(in srgb, var(--neon) 8%, transparent); }
 .btn--link {
   background: transparent;
   color: var(--neon);
@@ -1276,10 +1278,11 @@ html[data-theme="light"] .walk-flash {
 }
 .scene-tile {
   position: relative;
-  min-height: 112px;
-  padding: 12px;
-  border: 0.5px solid var(--gray-2);
-  border-radius: var(--radius-tile);
+  min-height: 72px;
+  max-height: 100px;
+  padding: 16px;
+  border: 1px solid var(--gray-2);
+  border-radius: 12px;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
@@ -1299,14 +1302,15 @@ html[data-theme="light"] .walk-flash {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0.72) 100%);
+  background: rgba(0, 0, 0, 0.5);
 }
 .scene-tile span {
   position: relative;
   z-index: 1;
-  font-size: var(--type-caption);
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.2;
+  color: var(--lite);
 }
 .scene-tile.is-on {
   border-color: var(--neon);
@@ -2746,13 +2750,13 @@ html[data-theme="light"] .fav-remove { border-color: var(--bg, #f7f5f2); }
 .scene-rail::-webkit-scrollbar { display: none; }
 .scene-btn {
   position: relative;
-  flex: 0 0 180px;
-  width: 180px;
-  min-width: 180px;
-  min-height: 125px;
-  height: 125px;
+  flex: 0 0 150px;
+  width: 150px;
+  min-width: 150px;
+  min-height: 72px;
+  height: 100px;
   padding: 16px;
-  border: 0.5px solid var(--gray-2);
+  border: 1px solid var(--gray-2);
   border-radius: 12px;
   overflow: hidden;
   display: flex;
@@ -2773,7 +2777,7 @@ html[data-theme="light"] .fav-remove { border-color: var(--bg, #f7f5f2); }
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
 }
 .scene-btn span {
   position: relative;

@@ -1,0 +1,120 @@
+---
+description: Jemm UI Design System tokens, components, and usage rules (Figma file: uix82R4uZUIMq63NlR8zk4)
+alwaysApply: true
+---
+
+# Jemm Design System
+
+Source: Figma file `uix82R4uZUIMq63NlR8zk4` — Jemm UI Library (WIP)
+
+---
+
+## Color tokens (CSS variables)
+
+| Token | Hex | Use |
+|-------|-----|-----|
+| `--neon` | `#00d58c` | Brand accent — buttons, active states, icons, highlights |
+| `--ink` | `#121212` | Darkest background / base layer |
+| `--lite` | `#f2f2f2` | Primary text / "Lite Gray" |
+| `--gray-2` | `#404040` | Borders, dividers, inactive toggles |
+| `--charcoal` | `#202020` | Card / surface layer on top of ink |
+| `--muted` | `#b4b4b4` | Secondary / caption text |
+| `--white` | `#ffffff` | High-contrast text on photos/media |
+| `--rose` | `#ff7999` | Destructive / error states |
+
+Never use raw hex values — always reference the CSS variable.
+
+---
+
+## Typography
+
+- **Font**: `Inter` (already loaded via `--font`)
+- **Headings**: `font-weight: 600`, `letter-spacing: -0.02em`
+- **Body**: `font-weight: 400`, `font-size: 16px`
+- **Caption**: `font-size: 13–14px`
+- **Sentence case only** — never ALL CAPS labels
+
+---
+
+## Button hierarchy (4 levels — Figma exact)
+
+```css
+/* Primary — neon fill, ink text, full pill */
+.btn--primary  { background: var(--neon); color: var(--on-accent); border-radius: var(--radius-pill); }
+
+/* Secondary — charcoal fill, white text, full pill */
+.btn--secondary { background: var(--pill); color: var(--white); border-radius: var(--radius-pill); }
+
+/* Tertiary / Ghost — transparent, neon border + text, full pill */
+.btn--tertiary, .btn--ghost { background: transparent; color: var(--neon); border: 1px solid var(--neon); }
+
+/* Link — no bg, neon text */
+.btn--link { background: transparent; color: var(--neon); border: none; }
+```
+
+---
+
+## Scene cards (from node 302:2835)
+
+```css
+border: 1px solid #404040;
+border-radius: 12px;
+min-height: 72px;
+max-height: 100px;
+padding: 16px;
+/* photo bg + scrim */
+background-scrim: rgba(0, 0, 0, 0.5);
+/* text */
+font-size: 16px;
+font-weight: 600;
+color: #f2f2f2;
+align-items: flex-end; /* text at bottom-left */
+```
+
+---
+
+## Icons
+
+- All icons use **neon green** (`#00d58c`) outline/stroke style
+- Icon size: `24px` (default), `16px` (small)
+- Never color icons green for locks or cameras — use neutral `var(--lite)` or `var(--muted)` for security devices
+- Use the project's existing SVG assets — never hand-draw or inline `<path>` elements
+
+---
+
+## Spacing
+
+| Token | Value |
+|-------|-------|
+| `--page-pad` | `20px` |
+| `--space-y` | configurable: 12/16/20/24px |
+| `--radius-sm` | `8px` |
+| `--radius-md` | `16px` |
+| `--radius-tile` | `20px` |
+| `--radius-pill` | `999px` |
+
+---
+
+## Surfaces
+
+- **Matte**: `background: var(--charcoal)` + no blur
+- **Glass**: `background: rgba(18,18,18,0.42)` + `backdrop-filter: blur(20px)`
+- **Borders**: always `1px solid var(--gray-2)` or `0.5px solid var(--gray-2)` for subtle dividers
+
+---
+
+## Navigation
+
+- Bottom nav: active item = `var(--neon)`, inactive = `var(--muted)`
+- Top nav: transparent by default, blurs + fills on scroll
+- Back chevron: left side of topnav, `var(--lite)` color
+- Page titles: centered in topnav, `var(--lite)`, 15px semi-bold
+
+---
+
+## Key flows (wireframe-driven)
+
+- Summary tile tap → **full page** with device list (title in topnav, All On/Off seg, device rows)
+- Device row tap → **bottom sheet** over the list page (compact: name + power + core control)
+- No overlay/peek for device lists — always navigate to a dedicated page
+- Edits apply live — no Save buttons for toggles, sliders, or favorites
