@@ -4447,10 +4447,12 @@ function peekAllSeg(kind, list) {
   if (!list.length) return "";
   const info = peekKindInfo(kind);
   const onCount = list.filter((d) => ctl(d).on).length;
+  const allOn = onCount === list.length;
+  const allOff = onCount === 0;
   return `
-    <div class="seg peek-seg" role="group" aria-label="All ${info.title}">
-      <button type="button" class="${onCount === 0 ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="false">All Off</button>
-      <button type="button" class="${onCount === list.length ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="true">All On</button>
+    <div class="small-seg" role="group" aria-label="All ${info.title}">
+      <button type="button" class="${allOn ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="true">All On</button>
+      <button type="button" class="${allOff ? "is-on" : ""}" data-act="kind-all" data-kind="${info.deviceKind}" data-on="false">All Off</button>
     </div>`;
 }
 
@@ -4460,24 +4462,21 @@ function peekSlider(id, field, value, min, max, step = 1) {
 
 function peekControlCard(d) {
   const c = ctl(d);
-  const canToggle = TOGGLEABLE_KINDS.has(d.kind);
   const kelvinDot = d.kind === "light" && c.kelvin
-    ? `<span class="peek-kelvin-dot" style="background:${kelvinToHex(c.kelvin)}" aria-hidden="true"></span>`
+    ? `<span class="dev-row__kelvin" style="background:${kelvinToHex(c.kelvin)}" aria-hidden="true"></span>`
     : "";
   return `
-    <div class="peek-card ${c.on ? "is-on" : ""}">
-      <div class="peek-card__row">
-        <button type="button" class="peek-card__icon${c.on ? " is-on" : ""}${d.kind === "fan" && c.on ? " is-spin" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}">
-          ${icon(deviceIcon(d.kind))}
-        </button>
-        <button type="button" class="peek-card__name" data-act="open-device-sheet" data-device="${d.id}" aria-label="Open ${d.name}">
-          ${d.name}${kelvinDot}
-          <span class="peek-card__detail">${c.on ? deviceDetail(d) : "Off"}</span>
-        </button>
-        ${canToggle ? `
-          <button type="button" class="dash-tile__power${c.on ? " is-on" : ""}" data-act="quick-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on ? "true" : "false"}">${powerIcon(14)}</button>
-        ` : ""}
-      </div>
+    <div class="dev-row ${c.on ? "is-on" : ""}">
+      <button type="button" class="dev-row__main" data-act="open-device-sheet" data-device="${d.id}" aria-label="Open ${d.name}">
+        <span class="dev-row__ico">${icon(deviceIcon(d.kind))}</span>
+        <span class="dev-row__info">
+          <span class="dev-row__name">${d.name}${kelvinDot}</span>
+        </span>
+      </button>
+      <label class="toggle-wrap">
+        <span class="toggle-wrap__label">${c.on ? "on" : "off"}</span>
+        <button type="button" class="toggle ${c.on ? "is-on" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on}"></button>
+      </label>
     </div>`;
 }
 
@@ -4622,12 +4621,16 @@ function renderSummary() {
     ${topnav({ back })}
     ${jemmStripIf("top")}
     <div class="stage stack-lg">
-      <div class="home-head">
-        <p class="kicker">Summary</p>
-        <h1 class="h1">${info.title}</h1>
-        ${info.all ? peekAllSeg(kind, list) : `<p class="muted">This group’s current devices. Open one to control it.</p>`}
+      <div class="dev-category-head">
+        <div class="dev-category-head__left">
+          <span class="dev-category-head__icon">${icon(info.src || info.icon || "assets/icons/24/lights.svg")}</span>
+          <h1 class="dev-category-head__title">${info.title}</h1>
+        </div>
+        ${info.all && list.length ? peekAllSeg(kind, list) : ""}
       </div>
-      ${summaryBody(kind)}
+      <div class="dev-row-list">
+        ${summaryBody(kind)}
+      </div>
     </div>
     ${jemmStripIf("bottom")}
     ${bottomNav(back === "rooms" || back === "room" ? "rooms" : back === "more" || back === "devices" ? "more" : "home")}`;
