@@ -4460,34 +4460,23 @@ function peekSlider(id, field, value, min, max, step = 1) {
 
 function peekControlCard(d) {
   const c = ctl(d);
-  const isOpen = state.peekDeviceId === d.id;
-  let control = "";
-  if (d.kind === "light") control = peekSlider(d.id, "intensity", c.on ? c.intensity : 0, 0, 100);
-  else if (d.kind === "audio") control = peekSlider(d.id, "volume", c.on ? c.volume : 0, 0, 100);
-  else if (d.kind === "shade") control = peekSlider(d.id, "pos", c.pos, 0, 100);
-  else if (d.kind === "climate") control = peekSlider(d.id, "temp", c.temp, 60, 86);
-  else if (d.kind === "fan") {
-    control = `
-      <div class="peek-speeds" role="group" aria-label="Speed">
-        ${["low", "med", "high"].map((s) => `
-          <button type="button" class="${c.on && c.speed === s ? "is-on" : ""}" data-act="ctl-speed" data-device="${d.id}" data-value="${s}">${s}</button>
-        `).join("")}
-      </div>`;
-  }
+  const canToggle = TOGGLEABLE_KINDS.has(d.kind);
   const kelvinDot = d.kind === "light" && c.kelvin
     ? `<span class="peek-kelvin-dot" style="background:${kelvinToHex(c.kelvin)}" aria-hidden="true"></span>`
     : "";
   return `
-    <div class="peek-card ${c.on ? "is-on" : ""}${isOpen ? " is-selected" : ""}">
+    <div class="peek-card ${c.on ? "is-on" : ""}">
       <div class="peek-card__row">
         <button type="button" class="peek-card__icon${c.on ? " is-on" : ""}${d.kind === "fan" && c.on ? " is-spin" : ""}" data-act="ctl-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}">
           ${icon(deviceIcon(d.kind))}
         </button>
-        <button type="button" class="peek-card__name" data-act="peek-device-open" data-device="${d.id}" aria-label="Open ${d.name}">
+        <button type="button" class="peek-card__name" data-act="open-device-sheet" data-device="${d.id}" aria-label="Open ${d.name}">
           ${d.name}${kelvinDot}
           <span class="peek-card__detail">${c.on ? deviceDetail(d) : "Off"}</span>
         </button>
-        ${control}
+        ${canToggle ? `
+          <button type="button" class="dash-tile__power${c.on ? " is-on" : ""}" data-act="quick-power-toggle" data-device="${d.id}" aria-label="Toggle ${d.name}" aria-pressed="${c.on ? "true" : "false"}">${powerIcon(14)}</button>
+        ` : ""}
       </div>
     </div>`;
 }
@@ -5012,6 +5001,11 @@ document.addEventListener("click", (e) => {
   if (act === "set-scene-detail-style") patch({ sceneDetailStyle: t.dataset.value });
   if (act === "peek-device-open") {
     patch({ peekDeviceId: t.dataset.device });
+    return;
+  }
+  if (act === "open-device-sheet") {
+    const id = t.dataset.device;
+    if (id) openDevice(id);
     return;
   }
   if (act === "peek-device-back") {
