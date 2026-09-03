@@ -696,8 +696,8 @@ html[data-theme="light"] .topnav--app.is-scrolled {
   gap: 0;
   padding: 12px 20px;
   border-radius: 28px;
-  background: #000;
-  border: 0.25px solid #404040;
+  background: rgba(18,18,18,0.92);
+  border: 0.5px solid var(--gray-2);
   box-shadow: 0 -6px 12px rgba(0,0,0,.15), 0 -3px 6px rgba(0,0,0,.3), 0 -1px 2px rgba(0,0,0,.5);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -763,8 +763,15 @@ html[data-theme="light"] .nav-item.is-on .nav-item__icon img {
   gap: 0;
 }
 .nav-item--icon .nav-item__icon { width: 22px; height: 22px; }
-.nav-item--icon .nav-item__icon img { opacity: .75; }
-.nav-item--icon.is-on .nav-item__icon img { opacity: 1; }
+.nav-item--icon .nav-item__icon img {
+  opacity: .45;
+  filter: brightness(0) invert(1);
+}
+.nav-item--icon.is-on .nav-item__icon img {
+  opacity: 1;
+  /* same neon filter as labeled items */
+  filter: brightness(0) saturate(100%) invert(63%) sepia(72%) saturate(462%) hue-rotate(118deg) brightness(103%) contrast(101%);
+}
 
 /* Jemm center button — base layout only; glow/animation below */
 .nav-jemm {
@@ -2293,6 +2300,7 @@ html[data-theme="light"] .device-hero__icon-wrap { background: rgba(0,0,0,.05); 
   inset: 0;
   border-radius: 22px;
   padding: 0.75px;
+  pointer-events: none;
   background: conic-gradient(
     from var(--jemm-angle, 0deg),
     var(--neon) 0%,
